@@ -24,7 +24,7 @@ services:
     volumes:
       - './backend:/app'
       - 'backend_gradle_cache:/root/.gradle'
-    command: sh gradlew bootRun
+    command: sh gradlew bootRun --continuous
     ports:
       - '8080:8080'
     depends_on:
