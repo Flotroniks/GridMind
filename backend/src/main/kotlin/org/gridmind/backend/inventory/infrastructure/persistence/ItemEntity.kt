@@ -62,6 +62,12 @@ class ItemEntity(
 
     @Column(name = "quantity_in_use", nullable = false)
     var quantityInUse: Int = 0,
+
+    // A raw id rather than a @ManyToOne: nothing ever needs to navigate from an item to
+    // its full StoredImage (the API only exposes a "/api/media/{id}" URL), so a lazy
+    // relation would just be overhead. The DB foreign key still enforces integrity.
+    @Column(name = "image_id")
+    var imageId: Long? = null,
 ) {
     fun toDomain(): Item = Item(
         id = id,
@@ -78,6 +84,7 @@ class ItemEntity(
         minimumQuantity = minimumQuantity,
         quantityHs = quantityHs,
         quantityInUse = quantityInUse,
+        imageId = imageId,
     )
 
     companion object {
@@ -96,6 +103,7 @@ class ItemEntity(
             minimumQuantity = item.minimumQuantity,
             quantityHs = item.quantityHs,
             quantityInUse = item.quantityInUse,
+            imageId = item.imageId,
         )
     }
 }

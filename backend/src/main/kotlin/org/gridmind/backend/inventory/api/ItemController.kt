@@ -4,6 +4,7 @@ import jakarta.validation.Valid
 import jakarta.validation.constraints.Min
 import jakarta.validation.constraints.NotBlank
 import org.gridmind.backend.category.application.CategoryService
+import org.gridmind.backend.inventory.application.ImageStorageService
 import org.gridmind.backend.inventory.application.InventoryService
 import org.gridmind.backend.inventory.domain.Item
 import org.springframework.http.HttpStatus
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController
 class ItemController(
     private val inventoryService: InventoryService,
     private val categoryService: CategoryService,
+    private val imageStorageService: ImageStorageService,
 ) {
     @GetMapping("/items")
     fun listItems(
@@ -41,10 +43,16 @@ class ItemController(
         return ItemResponse.from(item, categoryNamesById()[item.categoryId])
     }
 
+    // Resolving the image here, before InventoryService ever sees the item, keeps
+    // InventoryService free of any notion of "external source" — it only ever persists
+    // an Item, which already carries a plain imageId like any other field.
     @PostMapping("/items")
     @ResponseStatus(HttpStatus.CREATED)
     fun createItem(@Valid @RequestBody request: ItemRequest): ItemResponse {
-        val item = inventoryService.create(request.toItem())
+        val imageId = request.sourceImageUrl
+            ?.let { imageStorageService.downloadAndStore(it, request.sourceImageProvider) }
+            ?.id
+        val item = inventoryService.create(request.toItem(imageId = imageId))
         return ItemResponse.from(item, categoryNamesById()[item.categoryId])
     }
 
@@ -91,8 +99,13 @@ data class ItemRequest(
 
     @field:Min(value = 0, message = "In-use quantity must be zero or positive")
     val quantityInUse: Int = 0,
+
+    // Not part of the Item domain — consumed once by ItemController when creating an
+    // item, to resolve a locally stored imageId before InventoryService ever runs.
+    val sourceImageUrl: String? = null,
+    val sourceImageProvider: String? = null,
 ) {
-    fun toItem(): Item = Item(
+    fun toItem(imageId: Long? = null): Item = Item(
         name = name,
         quantity = quantity,
         description = description,
@@ -106,6 +119,7 @@ data class ItemRequest(
         minimumQuantity = minimumQuantity,
         quantityHs = quantityHs,
         quantityInUse = quantityInUse,
+        imageId = imageId,
     )
 }
 
@@ -126,6 +140,7 @@ data class ItemResponse(
     val quantityHs: Int,
     val quantityInUse: Int,
     val quantityAvailable: Int,
+    val imageUrl: String?,
 ) {
     companion object {
         fun from(item: Item, categoryName: String? = null): ItemResponse = ItemResponse(
@@ -145,6 +160,7 @@ data class ItemResponse(
             quantityHs = item.quantityHs,
             quantityInUse = item.quantityInUse,
             quantityAvailable = item.quantityAvailable,
+            imageUrl = item.imageId?.let { "/api/media/$it" },
         )
     }
 }

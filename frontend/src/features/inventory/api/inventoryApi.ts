@@ -21,10 +21,15 @@ export function getItem(id: number): Promise<Item> {
   return fetchJson<Item>(`${BASE_PATH}/${id}`)
 }
 
-export function createItem(input: ItemInput): Promise<Item> {
+export interface CreateItemOptions {
+  sourceImageUrl?: string
+  sourceImageProvider?: string
+}
+
+export function createItem(input: ItemInput, options?: CreateItemOptions): Promise<Item> {
   return fetchJson<Item>(BASE_PATH, {
     method: 'POST',
-    body: JSON.stringify(input),
+    body: JSON.stringify({ ...input, ...options }),
   })
 }
 

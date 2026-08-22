@@ -24,6 +24,7 @@ services:
     volumes:
       - './backend:/app'
       - 'backend_gradle_cache:/root/.gradle'
+      - 'backend_media:/app/data/media'
     command: sh gradlew bootRun --continuous
     ports:
       - '8080:8080'
@@ -48,4 +49,5 @@ services:
 volumes:
   postgres_data:
   backend_gradle_cache:
+  backend_media:
   frontend_node_modules:

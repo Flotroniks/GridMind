@@ -8,6 +8,8 @@ class ItemNotFoundException(id: Long) : NotFoundException("Item with id $id was 
 class StorageLocationNotFoundException(id: Long) :
     NotFoundException("Storage location with id $id was not found.")
 
+class StoredImageNotFoundException(id: Long) : NotFoundException("Stored image with id $id was not found.")
+
 /** Thrown when an allocation or move would push an item's stock past its available quantity. Mapped to 409. */
 class InsufficientStockException(message: String) : RuntimeException(message)
 

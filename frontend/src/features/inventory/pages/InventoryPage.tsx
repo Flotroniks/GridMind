@@ -3,6 +3,8 @@ import { Alert, Box, Button, Card, CardContent, CircularProgress, Stack, Typogra
 import { useToast } from '@/components/common/useToast'
 import * as categoryApi from '@/features/categories/api/categoryApi'
 import type { Category } from '@/features/categories/types/Category'
+import { ProductSearchModal } from '@/features/catalog/components/ProductSearchModal'
+import type { CatalogImageSource } from '@/features/catalog/components/CatalogConfirmStep'
 import { ApiError } from '@/lib/apiClient'
 import * as inventoryApi from '../api/inventoryApi'
 import { DeleteItemDialog } from '../components/DeleteItemDialog'
@@ -43,6 +45,7 @@ export function InventoryPage() {
   const [itemPendingDelete, setItemPendingDelete] = useState<Item | null>(null)
   const [editingItem, setEditingItem] = useState<Item | null>(null)
   const [creating, setCreating] = useState(false)
+  const [searchingCatalog, setSearchingCatalog] = useState(false)
 
   const loadItems = useCallback(async (currentFilters: ItemFiltersValue) => {
     try {
@@ -85,6 +88,26 @@ export function InventoryPage() {
     } catch (createError) {
       showToast(messageOf(createError, 'Création impossible.'), 'error')
     }
+  }
+
+  const handleCreateFromCatalog = async (input: ItemInput, source: CatalogImageSource | null) => {
+    try {
+      await inventoryApi.createItem(
+        input,
+        source ? { sourceImageUrl: source.url, sourceImageProvider: source.provider } : undefined,
+      )
+      showToast('Objet ajouté.', 'success')
+      await loadItems(filters)
+    } catch (createError) {
+      showToast(messageOf(createError, 'Création impossible.'), 'error')
+    }
+  }
+
+  const handleManualCreateFromCatalog = (query: string) => {
+    if (query) {
+      setFilters((current) => ({ ...current, search: query }))
+    }
+    setCreating(true)
   }
 
   const handleUpdate = async (input: ItemInput) => {
@@ -132,9 +155,14 @@ export function InventoryPage() {
                 Inventaire
               </Typography>
             </Box>
-            <Button variant="contained" onClick={() => setCreating(true)}>
-              Ajouter un objet
-            </Button>
+            <Stack direction="row" spacing={1}>
+              <Button variant="contained" onClick={() => setSearchingCatalog(true)}>
+                Rechercher un produit
+              </Button>
+              <Button variant="outlined" onClick={() => setCreating(true)}>
+                Ajouter manuellement
+              </Button>
+            </Stack>
           </Stack>
 
           <Box sx={{ mb: 3 }}>
@@ -173,6 +201,15 @@ export function InventoryPage() {
         onClose={() => setCreating(false)}
         onSubmit={handleCreate}
         onCreateCategory={handleCreateCategory}
+      />
+
+      <ProductSearchModal
+        open={searchingCatalog}
+        categories={categories}
+        onClose={() => setSearchingCatalog(false)}
+        onCreateCategory={handleCreateCategory}
+        onSubmit={handleCreateFromCatalog}
+        onManualCreateRequest={handleManualCreateFromCatalog}
       />
 
       <ItemFormModal

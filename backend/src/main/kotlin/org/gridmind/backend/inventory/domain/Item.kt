@@ -10,6 +10,10 @@ package org.gridmind.backend.inventory.domain
  * [quantity] is the total owned. Of those, [quantityHs] are broken/unusable and
  * [quantityInUse] are currently tied up in a project — neither is available to grab.
  * [quantityAvailable] is what's actually left to use right now.
+ *
+ * [imageId] points at a [StoredImage] downloaded and kept locally — never at an
+ * external provider URL directly, so the item's picture survives that provider going
+ * away or an internet outage.
  */
 data class Item(
     val id: Long? = null,
@@ -26,6 +30,7 @@ data class Item(
     val minimumQuantity: Int = 0,
     val quantityHs: Int = 0,
     val quantityInUse: Int = 0,
+    val imageId: Long? = null,
 ) {
     init {
         require(name.isNotBlank()) { "Item name must not be blank." }

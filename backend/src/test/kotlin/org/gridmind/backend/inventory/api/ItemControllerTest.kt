@@ -2,13 +2,17 @@ package org.gridmind.backend.inventory.api
 
 import org.gridmind.backend.category.application.CategoryService
 import org.gridmind.backend.category.domain.Category
+import org.gridmind.backend.inventory.application.ImageStorageService
 import org.gridmind.backend.inventory.application.InventoryService
 import org.gridmind.backend.inventory.domain.Item
+import org.gridmind.backend.inventory.domain.StoredImage
 import org.gridmind.backend.shared.config.SecurityConfig
 import org.gridmind.backend.shared.error.ItemNotFoundException
 import org.junit.jupiter.api.Test
+import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.doThrow
+import org.mockito.Mockito.verifyNoInteractions
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.context.annotation.Import
@@ -38,6 +42,9 @@ class ItemControllerTest {
     @MockitoBean
     private lateinit var categoryService: CategoryService
 
+    @MockitoBean
+    private lateinit var imageStorageService: ImageStorageService
+
     @Test
     fun `create returns 201 with the created item`() {
         `when`(categoryService.findAll()).thenReturn(emptyList())
@@ -52,6 +59,59 @@ class ItemControllerTest {
             .andExpect(status().isCreated)
             .andExpect(jsonPath("$.id").value(1))
             .andExpect(jsonPath("$.name").value("ESP32-S3"))
+            .andExpect(jsonPath("$.imageUrl").doesNotExist())
+        verifyNoInteractions(imageStorageService)
+    }
+
+    @Test
+    fun `create resolves a source image before creating the item`() {
+        `when`(categoryService.findAll()).thenReturn(emptyList())
+        `when`(imageStorageService.downloadAndStore("https://example.com/a.png", "DigiKey"))
+            .thenReturn(StoredImage(id = 5L, checksum = "abc", contentType = "image/png", filePath = "/data/media/abc.png"))
+        `when`(inventoryService.create(Item(name = "ESP32-S3", quantity = 4, imageId = 5L)))
+            .thenReturn(Item(id = 1L, name = "ESP32-S3", quantity = 4, imageId = 5L))
+
+        mockMvc.perform(
+            post("/api/inventory/items")
+                .contentType("application/json")
+                .content(
+                    objectMapper.writeValueAsString(
+                        mapOf(
+                            "name" to "ESP32-S3",
+                            "quantity" to 4,
+                            "sourceImageUrl" to "https://example.com/a.png",
+                            "sourceImageProvider" to "DigiKey",
+                        ),
+                    ),
+                ),
+        )
+            .andExpect(status().isCreated)
+            .andExpect(jsonPath("$.imageUrl").value("/api/media/5"))
+    }
+
+    @Test
+    fun `create still succeeds when the image download fails`() {
+        `when`(categoryService.findAll()).thenReturn(emptyList())
+        `when`(imageStorageService.downloadAndStore(anyString(), anyString())).thenReturn(null)
+        `when`(inventoryService.create(Item(name = "ESP32-S3", quantity = 4)))
+            .thenReturn(Item(id = 1L, name = "ESP32-S3", quantity = 4))
+
+        mockMvc.perform(
+            post("/api/inventory/items")
+                .contentType("application/json")
+                .content(
+                    objectMapper.writeValueAsString(
+                        mapOf(
+                            "name" to "ESP32-S3",
+                            "quantity" to 4,
+                            "sourceImageUrl" to "https://example.com/broken.png",
+                            "sourceImageProvider" to "DigiKey",
+                        ),
+                    ),
+                ),
+        )
+            .andExpect(status().isCreated)
+            .andExpect(jsonPath("$.imageUrl").doesNotExist())
     }
 
     @Test

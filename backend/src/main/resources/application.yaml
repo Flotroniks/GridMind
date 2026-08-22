@@ -24,6 +24,8 @@ server:
 gridmind:
   cors:
     allowed-origin: http://localhost:5173
+  media:
+    storage-path: ./data/media
 
 logging:
   level:
