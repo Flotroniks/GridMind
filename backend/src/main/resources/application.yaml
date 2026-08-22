@@ -26,6 +26,18 @@ gridmind:
     allowed-origin: http://localhost:5173
   media:
     storage-path: ./data/media
+  catalog:
+    digikey:
+      # Production by default — DigiKey ties an app's client ID to one specific
+      # environment at creation time, and a Sandbox app's credentials are rejected here
+      # with 401 "Invalid clientId" (confirmed directly against DigiKey's own API, not a
+      # bug in this app). Production keyword search still costs nothing on the standard
+      # free tier (1000 req/day) and returns real data instead of sandbox placeholders.
+      # Override with DIGIKEY_BASE_URL=https://sandbox-api.digikey.com if your app was
+      # created as a Sandbox app instead. See .env.example for how to get credentials.
+      base-url: ${DIGIKEY_BASE_URL:https://api.digikey.com}
+      client-id: ${DIGIKEY_CLIENT_ID:}
+      client-secret: ${DIGIKEY_CLIENT_SECRET:}
 
 logging:
   level:
