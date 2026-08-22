@@ -106,9 +106,10 @@ When adding an inventory item, GridMind can look it up across external parts cat
 | --- | --- | --- | --- | --- | --- |
 | [DigiKey](https://developer.digikey.com) | Electronic components | **Supported** | OAuth2 (client credentials) | Yes | General electronic components with a real MPN |
 | [Mouser](https://www.mouser.com/api-hub/) | Electronic components | **Supported**¹ | API key | Yes | Second source, used to validate cross-provider grouping |
+| [Adafruit](https://www.adafruit.com/products_api) | Maker hardware | **Supported** | None (public API) | Yes | Dev boards, breakout boards and modules that don't have a real distributor MPN |
 | [Octopart / Nexar](https://nexar.com/api) | Electronic components aggregator | **Rejected** | OAuth2 | Yes | — its terms cap caching at 24h and forbid self-hosting images, which conflicts directly with this project's "keep images locally, indefinitely" goal |
 | [partsdb.io](https://www.partsdb.io/) | Electronic components (reichelt/Conrad, EU-focused) | **Planned** | API key | Not confirmed in its docs | Low-friction fallback (plain key, no OAuth, permissive terms) if DigiKey/Mouser coverage is ever insufficient |
-| Maker/dev-board catalogs (Adafruit, SparkFun, ...) | Maker hardware | **Planned** | Not researched | Not researched | Breakout boards and dev boards — DigiKey/Mouser already surface some of these (e.g. searching "BME280" returns SparkFun and Adafruit boards), but a dedicated maker catalog isn't implemented. The common model no longer blocks this: `CatalogResult.mpn` is optional (see below), so a future maker provider can plug in without a model change |
+| [SparkFun](https://www.sparkfun.com/) | Maker hardware | **Rejected** | — | — | No public product-catalog API exists (only hookup-guide/GitHub docs for their designs) — the only way to pull their catalog would be scraping the site, which is fragile and outside what this project is willing to depend on |
 
 ¹ Code is implemented and its mapping is validated against Mouser's real API schema, but Mouser reviews every API key request manually (1-2 business days) — a freshly issued key won't return results until it's approved on Mouser's side. Nothing on the GridMind side needs to change once that happens.
 
@@ -118,6 +119,8 @@ Each supported provider in detail:
 
 **Mouser** — Search API v1, official API. Requires `MOUSER_API_KEY` (apply at [mouser.com/api-hub](https://www.mouser.com/en/api-hub/), Search API section — manual approval, 1-2 business days). Free tier: 1000 requests/day, 30/minute. Same data shape as DigiKey (name, manufacturer, MPN, description, category, datasheet, image).
 
+**Adafruit** — [Products API](https://www.adafruit.com/products_api), public, no key required. Structurally different from DigiKey/Mouser: it has no keyword-search endpoint, only a full-catalog dump (`/api/products`, ~5,500 products, ~8MB). `AdafruitApiClient` fetches that once and keeps it in memory for 12h, refetching when it goes stale; `AdafruitProductCatalogProvider` filters the cached list by name/MPN/model and caps results at 20. Returns name, manufacturer (defaults to "Adafruit" when the feed leaves it blank), Adafruit's own store SKU as the MPN (e.g. `ADA5800` — a stable per-product reference, not a manufacturer-issued MPN), and an image. No description, no datasheet URL, and no category: the feed has neither of the first two, and resolving a human category name would require its separate `/api/categories` endpoint (~28MB, embeds every product per category) — not worth it for a field GridMind's own category picker overrides anyway at confirm time. Discontinued/pending and virtual (non-physical) listings are filtered out before matching. On by default (no credentials to gate on); set `ADAFRUIT_CATALOG_ENABLED=false` to turn it off, e.g. to skip fetching/caching its feed in a constrained environment.
+
 ### Provider configuration
 
 ```env
@@ -125,9 +128,11 @@ DIGIKEY_CLIENT_ID=
 DIGIKEY_CLIENT_SECRET=
 
 MOUSER_API_KEY=
+
+# ADAFRUIT_CATALOG_ENABLED=false
 ```
 
-Copy these into your own `.env` (never commit real keys — `.env` is gitignored). See `.env.example` for the up-to-date list, including optional `DIGIKEY_BASE_URL`/`MOUSER_BASE_URL` overrides. A provider without credentials configured simply doesn't contribute any results — nothing else breaks, and no restart is needed for other features to keep working.
+Copy these into your own `.env` (never commit real keys — `.env` is gitignored). See `.env.example` for the up-to-date list, including optional `DIGIKEY_BASE_URL`/`MOUSER_BASE_URL`/`ADAFRUIT_BASE_URL` overrides. A provider without credentials configured simply doesn't contribute any results — nothing else breaks, and no restart is needed for other features to keep working. Adafruit needs no credentials at all, so it's enabled by default.
 
 ### Provider responsibilities
 
@@ -144,8 +149,8 @@ Provider-specific response types (e.g. `DigiKeyProduct`, `MouserPart`) never lea
 
 Two different kinds of source exist conceptually:
 
-- **Electronic component distributors** (DigiKey, Mouser) — precise, MPN-driven, huge catalogs, built for sourcing parts at scale. This is what's implemented today.
-- **Maker/dev-board catalogs** (Adafruit, SparkFun, generic Arduino/ESP32 module listings) — better suited to hobbyist boards that don't always have a distributor-style MPN. Not implemented yet; see the [Adding a new provider](#adding-a-new-provider) section below.
+- **Electronic component distributors** (DigiKey, Mouser) — precise, MPN-driven, huge catalogs, built for sourcing parts at scale.
+- **Maker/dev-board catalogs** (Adafruit) — better suited to hobbyist boards that don't always have a distributor-style MPN. Adafruit is implemented; SparkFun was evaluated and rejected for lack of a public catalog API (see the table above). See [Adding a new provider](#adding-a-new-provider) below for wiring up another one.
 
 `CatalogResult.mpn` is optional (`String?`), precisely so the common model doesn't force maker hardware into a distributor shape it doesn't have: a Wemos D1 Mini, a NodeMCU, an ESP32-CAM breakout, or a generic sensor module rarely carries a real MPN, and GridMind shouldn't require one to be searchable or inventoriable. `ProductGrouper` treats a missing MPN as "no reliable merge key" rather than a wildcard — two MPN-less results are never merged into each other, even with the same name and manufacturer, and an MPN-less result never absorbs (or is absorbed by) one that does have an MPN. This keeps grouping deterministic without guessing.
 
@@ -192,17 +197,18 @@ Once downloaded, an image no longer depends on the provider or on internet acces
 1. Implement the `ProductCatalogProvider` port (`catalog/application/ProductCatalogProvider.kt`) in a new adapter subpackage `catalog/infrastructure/provider/<name>/`.
 2. Keep that provider's own request/response DTOs private to its own package — see `digikey/` or `mouser/` for the pattern.
 3. Map its results to `CatalogResult`/`CatalogImage`; skip anything that can't be mapped (e.g. no name). A missing MPN is fine — leave it `null` rather than inventing one.
-4. Register it as a Spring bean gated by `@ConditionalOnExpression` on its required config being non-empty, so the app keeps working with it unconfigured.
+4. Register it as a Spring bean gated on its config: `@ConditionalOnExpression` checking required credentials are non-empty for a key/OAuth-based API (see `digikey/`, `mouser/`), or `@ConditionalOnProperty` with `matchIfMissing = true` for a public API that's on by default (see `adafruit/`) — either way, the app keeps working whether or not it's active.
 5. Add its config under `gridmind.catalog.<name>` in `application.yaml`, backed by env vars documented in `.env.example`.
-6. Write a pure mapping test (no network) plus a live test gated by `@EnabledIfEnvironmentVariable`, so `./gradlew test` never needs real credentials to pass.
+6. Write a pure mapping test (no network) plus a live test gated by `@EnabledIfEnvironmentVariable`, so `./gradlew test` never needs real credentials — or network access — to pass, even for a provider that needs no credentials at all (see `AdafruitApiClientLiveTest`, gated on an opt-in `RUN_ADAFRUIT_LIVE_TEST` flag instead).
 7. Update the table above.
 
 ### Architecture decisions
 
 GridMind is a modular monolith, not a full hexagonal/clean-architecture rewrite: `domain`/`application`/`infrastructure`/`api` layering is applied per feature only where it earns its keep, and only external dependencies (catalog providers, image storage) sit behind an explicit port. No generic factories, no `Service`/`ServiceImpl` pairs, no interface for something with a single implementation and no foreseeable second one.
 
-- **`ProductCatalogProvider` is a port in `catalog/application/`, not `catalog/infrastructure/`.** It's the seam the catalog feature depends on to reach the outside world (DigiKey, Mouser, the in-memory fake), so it belongs with the use case that depends on it (`ProductSearchService`), not with the adapters that implement it. This mirrors the existing `ImageDownloader` port in `inventory/application/` (implemented by `RestClientImageDownloader` in `inventory/infrastructure/media/`) — one consistent pattern for "external dependency behind a port," applied to both features rather than invented twice.
+- **`ProductCatalogProvider` is a port in `catalog/application/`, not `catalog/infrastructure/`.** It's the seam the catalog feature depends on to reach the outside world (DigiKey, Mouser, Adafruit, the in-memory fake), so it belongs with the use case that depends on it (`ProductSearchService`), not with the adapters that implement it. This mirrors the existing `ImageDownloader` port in `inventory/application/` (implemented by `RestClientImageDownloader` in `inventory/infrastructure/media/`) — one consistent pattern for "external dependency behind a port," applied to both features rather than invented twice.
 - **`CatalogResult.mpn` is `String?`, not `String`.** The initial model made MPN mandatory, which is true for DigiKey/Mouser-style distributor data but not for maker hardware (dev boards, breakout boards, common sensor modules), which often has no real MPN at all. Rather than inventing a placeholder value, the model allows `null` and `ProductGrouper` treats it as "no merge key" — see [Provider selection](#provider-selection).
+- **Adafruit's adapter fetches and caches a full catalog instead of calling a search endpoint per query**, because Adafruit's Products API doesn't have one — it only exposes a full-list dump. Rather than distorting `ProductCatalogProvider`'s contract (still just `search(query): List<CatalogResult>`) to accommodate this, the difference is absorbed entirely inside `AdafruitApiClient` (fetch-and-cache) and `AdafruitProductCatalogProvider` (in-memory filter); nothing above the adapter needs to know Adafruit works differently from DigiKey or Mouser.
 
 ## Notes
 

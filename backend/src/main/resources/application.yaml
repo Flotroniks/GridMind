@@ -41,6 +41,11 @@ gridmind:
     mouser:
       base-url: ${MOUSER_BASE_URL:https://api.mouser.com}
       api-key: ${MOUSER_API_KEY:}
+    adafruit:
+      # Public API, no credentials needed — on by default. Set ADAFRUIT_CATALOG_ENABLED=false
+      # to skip fetching/caching Adafruit's ~8MB product feed if you don't want it.
+      enabled: ${ADAFRUIT_CATALOG_ENABLED:true}
+      base-url: ${ADAFRUIT_BASE_URL:https://www.adafruit.com}
 
 logging:
   level:
