@@ -26,7 +26,7 @@ export function ItemFilters({ value, categories, onChange }: ItemFiltersProps) {
           input: {
             startAdornment: (
               <InputAdornment position="start">
-                <SearchIcon color="primary" sx={{ fontSize: 26, ml: 0.5 }} />
+                <SearchIcon color="action" sx={{ fontSize: 26, ml: 0.5 }} />
               </InputAdornment>
             ),
             endAdornment: search ? (
@@ -48,15 +48,13 @@ export function ItemFilters({ value, categories, onChange }: ItemFiltersProps) {
             borderRadius: 999,
             py: 0.75,
             px: 1,
-            bgcolor: (theme) => alpha(theme.palette.primary.main, theme.palette.mode === 'dark' ? 0.16 : 0.06),
-            transition: 'background-color .2s ease, box-shadow .2s ease',
-            '& fieldset': { border: 'none' },
-            '&:hover': {
-              bgcolor: (theme) => alpha(theme.palette.primary.main, theme.palette.mode === 'dark' ? 0.22 : 0.09),
-            },
+            bgcolor: 'background.default',
+            transition: 'border-color .2s ease, box-shadow .2s ease',
+            '& fieldset': { borderColor: 'divider' },
+            '&:hover fieldset': { borderColor: 'text.secondary' },
+            '&.Mui-focused fieldset': { borderColor: 'primary.main' },
             '&.Mui-focused': {
-              bgcolor: 'background.paper',
-              boxShadow: (theme) => `0 0 0 3px ${alpha(theme.palette.primary.main, 0.35)}`,
+              boxShadow: (theme) => `0 0 0 3px ${alpha(theme.palette.primary.main, 0.25)}`,
             },
           },
         }}

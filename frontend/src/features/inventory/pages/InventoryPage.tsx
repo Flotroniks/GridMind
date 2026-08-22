@@ -157,6 +157,8 @@ export function InventoryPage() {
               items={items}
               onEditRequest={setEditingItem}
               onDeleteRequest={setItemPendingDelete}
+              hasActiveFilters={Boolean(filters.search || filters.categoryId || filters.manufacturer)}
+              onCreateRequest={() => setCreating(true)}
             />
           )}
         </CardContent>
@@ -165,6 +167,7 @@ export function InventoryPage() {
       <ItemFormModal
         open={creating}
         title="Ajouter un objet"
+        initialValue={filters.search ? { name: filters.search, quantity: 1 } : undefined}
         categories={categories}
         submitLabel="Ajouter"
         onClose={() => setCreating(false)}
