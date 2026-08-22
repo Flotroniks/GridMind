@@ -35,6 +35,15 @@ class AdafruitProductCatalogProviderTest {
     }
 
     @Test
+    fun `category name is filled in when the caller resolves and passes one`() {
+        val product = AdafruitProduct(productName = "Some board")
+
+        val result = product.toCatalogResult("Adafruit", categoryName = "Development Boards")
+
+        assertEquals("Development Boards", result?.category)
+    }
+
+    @Test
     fun `returns null when the product name is missing`() {
         val product = AdafruitProduct(productName = null)
 

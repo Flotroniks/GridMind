@@ -33,7 +33,10 @@ class AdafruitProductCatalogProvider(
             .asSequence()
             .filter { it.isCatalogable() && it.matches(query) }
             .take(MAX_RESULTS)
-            .mapNotNull { it.toCatalogResult(name) }
+            .mapNotNull { product ->
+                val categoryName = product.productMasterCategory?.let(client::categoryName)
+                product.toCatalogResult(name, categoryName)
+            }
             .toList()
 
     companion object {
@@ -58,12 +61,12 @@ internal fun AdafruitProduct.matches(query: String): Boolean =
  * method) so it's testable without spinning up a client or a Spring context — same
  * pattern as DigiKey's and Mouser's mapping functions.
  *
- * Adafruit's feed has no product description field and no datasheet URL, and resolving a
- * human category name would require its separate `/api/categories` endpoint — a ~28MB
- * payload that embeds every product per category, not worth fetching just to fill an
- * optional field GridMind's own category picker overrides anyway at confirm time.
+ * Adafruit's feed has no product description field and no datasheet URL. `categoryName`
+ * is resolved separately by the caller (see [AdafruitApiClient.categoryName]) since doing
+ * so needs a network call — this function stays a pure, client-free mapping so it's
+ * testable on its own, same as DigiKey's and Mouser's.
  */
-internal fun AdafruitProduct.toCatalogResult(providerName: String): CatalogResult? {
+internal fun AdafruitProduct.toCatalogResult(providerName: String, categoryName: String? = null): CatalogResult? {
     val resultName = productName?.takeIf { it.isNotBlank() } ?: return null
 
     return CatalogResult(
@@ -71,7 +74,7 @@ internal fun AdafruitProduct.toCatalogResult(providerName: String): CatalogResul
         manufacturer = productManufacturer?.takeIf { it.isNotBlank() } ?: "Adafruit",
         mpn = productMpn?.takeIf { it.isNotBlank() },
         description = productModel?.takeIf { it.isNotBlank() },
-        category = null,
+        category = categoryName,
         datasheetUrl = null,
         images = productImage?.takeIf { it.isNotBlank() }
             ?.let { listOf(CatalogImage(url = it, provider = providerName)) }
