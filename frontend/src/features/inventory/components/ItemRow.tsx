@@ -1,4 +1,5 @@
 import { Box, Button, Card, CardContent, Chip, Stack, Typography } from '@mui/material'
+import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined'
 import { Link } from 'react-router'
 import type { Item } from '../types/Item'
 import { TagBadgeList } from './TagBadgeList'
@@ -13,7 +14,22 @@ export function ItemRow({ item, onEditRequest, onDeleteRequest }: ItemRowProps) 
   const isLowStock = item.quantity <= item.minimumQuantity
 
   return (
-    <Card component="li" sx={{ listStyle: 'none' }}>
+    <Card component="li" sx={{ listStyle: 'none', overflow: 'hidden' }}>
+      <Box
+        component={Link}
+        to={`/inventory/${item.id}`}
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          aspectRatio: '4 / 3',
+          bgcolor: 'action.hover',
+          color: 'text.disabled',
+        }}
+      >
+        <ImageOutlinedIcon sx={{ fontSize: 48 }} />
+      </Box>
+
       <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2 }}>
           <Box>

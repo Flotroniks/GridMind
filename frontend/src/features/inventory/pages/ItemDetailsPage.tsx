@@ -10,6 +10,7 @@ import {
   Stack,
   Typography,
 } from '@mui/material'
+import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined'
 import { ApiError } from '@/lib/apiClient'
 import * as inventoryApi from '../api/inventoryApi'
 import { ItemStockLocations } from '../components/ItemStockLocations'
@@ -64,7 +65,19 @@ export function ItemDetailsPage() {
         &larr; Retour à l'inventaire
       </Typography>
 
-      <Card sx={{ backdropFilter: 'blur(8px)' }}>
+      <Card sx={{ backdropFilter: 'blur(8px)', overflow: 'hidden' }}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            aspectRatio: '16 / 9',
+            bgcolor: 'action.hover',
+            color: 'text.disabled',
+          }}
+        >
+          <ImageOutlinedIcon sx={{ fontSize: 64 }} />
+        </Box>
         <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2 }}>
             <Box>
