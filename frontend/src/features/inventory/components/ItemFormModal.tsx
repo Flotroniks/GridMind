@@ -1,3 +1,4 @@
+import { Dialog, DialogContent, DialogTitle } from '@mui/material'
 import type { Category } from '@/features/categories/types/Category'
 import type { ItemInput } from '../types/Item'
 import { ItemForm } from './ItemForm'
@@ -24,9 +25,9 @@ export function ItemFormModal({
   onCreateCategory,
 }: ItemFormModalProps) {
   return (
-    <div className={`modal ${open ? 'modal-open' : ''}`}>
-      <div className="modal-box max-w-2xl">
-        <h3 className="mb-4 text-lg font-bold">{title}</h3>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>{title}</DialogTitle>
+      <DialogContent>
         {open && (
           <ItemForm
             initialValue={initialValue}
@@ -40,7 +41,7 @@ export function ItemFormModal({
             }}
           />
         )}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }

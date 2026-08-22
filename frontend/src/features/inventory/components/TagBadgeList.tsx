@@ -1,3 +1,5 @@
+import { Chip, Stack } from '@mui/material'
+
 interface TagBadgeListProps {
   tags: string[]
 }
@@ -6,12 +8,10 @@ export function TagBadgeList({ tags }: TagBadgeListProps) {
   if (tags.length === 0) return null
 
   return (
-    <div className="flex flex-wrap gap-1">
+    <Stack direction="row" spacing={0.5} useFlexGap sx={{ flexWrap: 'wrap' }}>
       {tags.map((tag) => (
-        <span key={tag} className="badge badge-sm badge-outline">
-          {tag}
-        </span>
+        <Chip key={tag} label={tag} size="small" variant="outlined" />
       ))}
-    </div>
+    </Stack>
   )
 }

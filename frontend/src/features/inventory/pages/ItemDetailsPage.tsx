@@ -1,5 +1,15 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router'
+import {
+  Alert,
+  Box,
+  Card,
+  CardContent,
+  Chip,
+  CircularProgress,
+  Stack,
+  Typography,
+} from '@mui/material'
 import { ApiError } from '@/lib/apiClient'
 import * as inventoryApi from '../api/inventoryApi'
 import { ItemStockLocations } from '../components/ItemStockLocations'
@@ -28,84 +38,99 @@ export function ItemDetailsPage() {
 
   if (loading) {
     return (
-      <p className="flex items-center gap-2 text-base-content/70">
-        <span className="loading loading-spinner loading-sm" />
-        Chargement…
-      </p>
+      <Stack direction="row" spacing={1} sx={{ alignItems: 'center', color: 'text.secondary' }}>
+        <CircularProgress size={16} />
+        <Typography color="textSecondary">Chargement…</Typography>
+      </Stack>
     )
   }
 
   if (error || !item) {
     return (
-      <div role="alert" className="alert alert-error mx-auto w-full max-w-2xl">
-        <span>{error ?? 'Objet introuvable.'}</span>
-      </div>
+      <Alert severity="error" sx={{ mx: 'auto', width: '100%', maxWidth: 672 }}>
+        {error ?? 'Objet introuvable.'}
+      </Alert>
     )
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl">
-      <Link to="/" className="link link-hover mb-4 inline-block text-sm">
+    <Box sx={{ mx: 'auto', width: '100%', maxWidth: 672 }}>
+      <Typography
+        component={Link}
+        to="/"
+        variant="body2"
+        sx={{ mb: 2, display: 'inline-block', color: 'inherit', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+      >
         &larr; Retour à l'inventaire
-      </Link>
+      </Typography>
 
-      <div className="card bg-base-200/80 shadow-xl backdrop-blur">
-        <div className="card-body gap-3">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold">{item.name}</h1>
+      <Card sx={{ backdropFilter: 'blur(8px)' }}>
+        <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2 }}>
+            <Box>
+              <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                {item.name}
+              </Typography>
               {item.manufacturer && (
-                <p className="text-sm text-base-content/60">
+                <Typography variant="body2" color="textSecondary">
                   {item.manufacturer}
                   {item.reference ? ` · ${item.reference}` : ''}
-                </p>
+                </Typography>
               )}
-            </div>
-            <span className="text-3xl font-bold text-primary">{item.quantity}</span>
-          </div>
+            </Box>
+            <Typography variant="h4" color="primary" sx={{ fontWeight: 700 }}>
+              {item.quantity}
+            </Typography>
+          </Box>
 
           {item.categoryName && (
-            <span className="badge badge-primary badge-outline w-fit">{item.categoryName}</span>
+            <Chip label={item.categoryName} size="small" color="primary" variant="outlined" sx={{ width: 'fit-content' }} />
           )}
 
           <TagBadgeList tags={item.tags} />
 
-          {item.description && <p className="text-base-content/80">{item.description}</p>}
+          {item.description && <Typography color="textSecondary">{item.description}</Typography>}
 
-          <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-            <p>
-              <span className="text-base-content/60">Quantité minimale : </span>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
+            <Typography variant="body2">
+              <Typography component="span" variant="body2" color="textSecondary">
+                Quantité minimale :{' '}
+              </Typography>
               {item.minimumQuantity}
-            </p>
+            </Typography>
             {item.productUrl && (
-              <p>
-                <a href={item.productUrl} target="_blank" rel="noreferrer" className="link">
+              <Typography variant="body2">
+                <Typography component="a" href={item.productUrl} target="_blank" rel="noreferrer" color="primary">
                   Page produit
-                </a>
-              </p>
+                </Typography>
+              </Typography>
             )}
             {item.datasheetUrl && (
-              <p>
-                <a href={item.datasheetUrl} target="_blank" rel="noreferrer" className="link">
+              <Typography variant="body2">
+                <Typography component="a" href={item.datasheetUrl} target="_blank" rel="noreferrer" color="primary">
                   Datasheet
-                </a>
-              </p>
+                </Typography>
+              </Typography>
             )}
-          </div>
+          </Box>
 
           {item.notes && (
-            <div>
-              <p className="text-sm text-base-content/60">Notes</p>
-              <p>{item.notes}</p>
-            </div>
+            <Box>
+              <Typography variant="body2" color="textSecondary">
+                Notes
+              </Typography>
+              <Typography>{item.notes}</Typography>
+            </Box>
           )}
 
-          <div>
-            <p className="mb-2 text-sm text-base-content/60">Emplacements de stockage</p>
+          <Box>
+            <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+              Emplacements de stockage
+            </Typography>
             <ItemStockLocations itemId={item.id} />
-          </div>
-        </div>
-      </div>
-    </div>
+          </Box>
+        </CardContent>
+      </Card>
+    </Box>
   )
 }

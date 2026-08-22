@@ -1,3 +1,4 @@
+import { Box, Typography } from '@mui/material'
 import type { Item } from '../types/Item'
 import { ItemRow } from './ItemRow'
 
@@ -9,11 +10,20 @@ interface ItemListProps {
 
 export function ItemList({ items, onEditRequest, onDeleteRequest }: ItemListProps) {
   if (items.length === 0) {
-    return <p className="text-base-content/70">Aucun objet pour l'instant.</p>
+    return <Typography color="textSecondary">Aucun objet pour l'instant.</Typography>
   }
 
   return (
-    <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+    <Box
+      component="ul"
+      sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
+        gap: 2,
+        p: 0,
+        m: 0,
+      }}
+    >
       {items.map((item) => (
         <ItemRow
           key={item.id}
@@ -22,6 +32,6 @@ export function ItemList({ items, onEditRequest, onDeleteRequest }: ItemListProp
           onDeleteRequest={onDeleteRequest}
         />
       ))}
-    </ul>
+    </Box>
   )
 }

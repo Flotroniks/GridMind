@@ -1,3 +1,4 @@
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Typography } from '@mui/material'
 import type { Item } from '../types/Item'
 
 interface DeleteItemDialogProps {
@@ -8,22 +9,20 @@ interface DeleteItemDialogProps {
 
 export function DeleteItemDialog({ item, onConfirm, onCancel }: DeleteItemDialogProps) {
   return (
-    <div className={`modal ${item ? 'modal-open' : ''}`}>
-      <div className="modal-box">
-        <h3 className="text-lg font-bold">Supprimer l'objet</h3>
-        <p className="py-4">
+    <Dialog open={item !== null} onClose={onCancel}>
+      <DialogTitle>Supprimer l'objet</DialogTitle>
+      <DialogContent>
+        <Typography>
           Confirmer la suppression de <strong>{item?.name}</strong> ? Cette action est
           irréversible.
-        </p>
-        <div className="modal-action">
-          <button type="button" className="btn btn-ghost" onClick={onCancel}>
-            Annuler
-          </button>
-          <button type="button" className="btn btn-error" onClick={onConfirm}>
-            Supprimer
-          </button>
-        </div>
-      </div>
-    </div>
+        </Typography>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onCancel}>Annuler</Button>
+        <Button color="error" variant="contained" onClick={onConfirm}>
+          Supprimer
+        </Button>
+      </DialogActions>
+    </Dialog>
   )
 }

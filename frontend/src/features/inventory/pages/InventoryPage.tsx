@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Alert, Box, Button, Card, CardContent, CircularProgress, Stack, Typography } from '@mui/material'
 import { useToast } from '@/components/common/useToast'
 import * as categoryApi from '@/features/categories/api/categoryApi'
 import type { Category } from '@/features/categories/types/Category'
@@ -109,36 +110,46 @@ export function InventoryPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl">
-      <div className="card bg-base-200/80 shadow-xl backdrop-blur">
-        <div className="card-body">
-          <div className="mb-6 flex flex-col items-stretch justify-between gap-4 sm:flex-row sm:items-center">
-            <div>
-              <p className="text-xs font-semibold tracking-widest text-primary uppercase">
+    <Box sx={{ mx: 'auto', width: '100%', maxWidth: 960 }}>
+      <Card sx={{ backdropFilter: 'blur(8px)' }}>
+        <CardContent sx={{ p: 3 }}>
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={2}
+            sx={{
+              mb: 3,
+              justifyContent: 'space-between',
+              alignItems: { xs: 'stretch', sm: 'center' },
+            }}
+          >
+            <Box>
+              <Typography variant="overline" color="primary" sx={{ fontWeight: 600, letterSpacing: 2 }}>
                 GridMind
-              </p>
-              <h1 className="text-3xl font-bold sm:text-4xl">Inventaire</h1>
-            </div>
-            <button type="button" className="btn btn-primary" onClick={() => setCreating(true)}>
+              </Typography>
+              <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                Inventaire
+              </Typography>
+            </Box>
+            <Button variant="contained" onClick={() => setCreating(true)}>
               Ajouter un objet
-            </button>
-          </div>
+            </Button>
+          </Stack>
 
-          <div className="mb-6">
+          <Box sx={{ mb: 3 }}>
             <ItemFilters value={filters} categories={categories} onChange={setFilters} />
-          </div>
+          </Box>
 
           {error && (
-            <div role="alert" className="alert alert-error mb-5">
-              <span>{error}</span>
-            </div>
+            <Alert severity="error" sx={{ mb: 2.5 }}>
+              {error}
+            </Alert>
           )}
 
           {loading ? (
-            <p className="flex items-center gap-2 text-base-content/70">
-              <span className="loading loading-spinner loading-sm" />
-              Chargement de l'inventaire…
-            </p>
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center', color: 'text.secondary' }}>
+              <CircularProgress size={16} />
+              <Typography color="textSecondary">Chargement de l'inventaire…</Typography>
+            </Stack>
           ) : (
             <ItemList
               items={items}
@@ -146,8 +157,8 @@ export function InventoryPage() {
               onDeleteRequest={setItemPendingDelete}
             />
           )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       <ItemFormModal
         open={creating}
@@ -175,6 +186,6 @@ export function InventoryPage() {
         onConfirm={() => void handleDeleteConfirmed()}
         onCancel={() => setItemPendingDelete(null)}
       />
-    </div>
+    </Box>
   )
 }

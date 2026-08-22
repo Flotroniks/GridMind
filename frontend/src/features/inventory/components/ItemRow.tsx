@@ -1,3 +1,4 @@
+import { Box, Button, Card, CardContent, Chip, Stack, Typography } from '@mui/material'
 import { Link } from 'react-router'
 import type { Item } from '../types/Item'
 import { TagBadgeList } from './TagBadgeList'
@@ -12,47 +13,53 @@ export function ItemRow({ item, onEditRequest, onDeleteRequest }: ItemRowProps) 
   const isLowStock = item.quantity <= item.minimumQuantity
 
   return (
-    <li className="card bg-base-100 shadow-sm">
-      <div className="card-body gap-2 p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <Link to={`/inventory/${item.id}`} className="link link-hover">
-              <h2 className="card-title text-lg">{item.name}</h2>
-            </Link>
+    <Card component="li" sx={{ listStyle: 'none' }}>
+      <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2 }}>
+          <Box>
+            <Typography
+              component={Link}
+              to={`/inventory/${item.id}`}
+              variant="h6"
+              sx={{ color: 'inherit', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+            >
+              {item.name}
+            </Typography>
             {item.manufacturer && (
-              <p className="text-sm text-base-content/60">{item.manufacturer}</p>
+              <Typography variant="body2" color="textSecondary">
+                {item.manufacturer}
+              </Typography>
             )}
-          </div>
-          <span className={`text-3xl font-bold ${isLowStock ? 'text-error' : 'text-primary'}`}>
+          </Box>
+          <Typography
+            variant="h4"
+            sx={{ fontWeight: 700, color: isLowStock ? 'error.main' : 'primary.main' }}
+          >
             {item.quantity}
-          </span>
-        </div>
+          </Typography>
+        </Box>
 
         {item.categoryName && (
-          <span className="badge badge-sm badge-primary badge-outline w-fit">
-            {item.categoryName}
-          </span>
+          <Chip label={item.categoryName} size="small" color="primary" variant="outlined" sx={{ width: 'fit-content' }} />
         )}
 
         <TagBadgeList tags={item.tags} />
 
         {isLowStock && (
-          <p className="text-xs text-error">Stock sous le seuil minimal ({item.minimumQuantity})</p>
+          <Typography variant="caption" color="error">
+            Stock sous le seuil minimal ({item.minimumQuantity})
+          </Typography>
         )}
 
-        <div className="mt-2 flex gap-2">
-          <button type="button" className="btn btn-sm btn-ghost" onClick={() => onEditRequest(item)}>
+        <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+          <Button size="small" onClick={() => onEditRequest(item)}>
             Modifier
-          </button>
-          <button
-            type="button"
-            className="btn btn-sm btn-ghost text-error"
-            onClick={() => onDeleteRequest(item)}
-          >
+          </Button>
+          <Button size="small" color="error" onClick={() => onDeleteRequest(item)}>
             Supprimer
-          </button>
-        </div>
-      </div>
-    </li>
+          </Button>
+        </Stack>
+      </CardContent>
+    </Card>
   )
 }

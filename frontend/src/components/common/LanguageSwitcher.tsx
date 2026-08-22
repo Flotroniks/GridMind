@@ -1,3 +1,4 @@
+import { MenuItem, Select } from '@mui/material'
 import { useTranslation } from 'react-i18next'
 
 const LANGUAGES = ['fr', 'en'] as const
@@ -9,17 +10,18 @@ export function LanguageSwitcher() {
     : 'fr'
 
   return (
-    <select
-      className="select select-ghost select-sm w-auto"
+    <Select
+      size="small"
+      variant="standard"
       value={current}
       onChange={(event) => void i18n.changeLanguage(event.target.value)}
       aria-label="Language"
     >
       {LANGUAGES.map((lng) => (
-        <option key={lng} value={lng}>
+        <MenuItem key={lng} value={lng}>
           {lng.toUpperCase()}
-        </option>
+        </MenuItem>
       ))}
-    </select>
+    </Select>
   )
 }

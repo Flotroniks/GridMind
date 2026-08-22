@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { Box, CircularProgress, Stack, Typography } from '@mui/material'
 import * as storageApi from '../api/storageApi'
 
 interface LocationContentsProps {
@@ -13,28 +14,46 @@ export function LocationContents({ locationId }: LocationContentsProps) {
   })
 
   if (locationId == null) {
-    return <p className="text-sm text-base-content/60">Sélectionnez un emplacement.</p>
+    return (
+      <Typography variant="body2" color="textSecondary">
+        Sélectionnez un emplacement.
+      </Typography>
+    )
   }
 
   if (isLoading) {
-    return <span className="loading loading-spinner loading-sm" />
+    return <CircularProgress size={16} />
   }
 
   if (contents.length === 0) {
-    return <p className="text-sm text-base-content/60">Aucun objet stocké ici.</p>
+    return (
+      <Typography variant="body2" color="textSecondary">
+        Aucun objet stocké ici.
+      </Typography>
+    )
   }
 
   return (
-    <ul className="flex flex-col gap-2">
+    <Stack spacing={1}>
       {contents.map((stock) => (
-        <li
+        <Box
           key={stock.itemId}
-          className="flex items-center justify-between rounded-lg bg-base-100 px-3 py-2"
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderRadius: 2,
+            bgcolor: 'background.default',
+            px: 1.5,
+            py: 1,
+          }}
         >
-          <span>{stock.itemName}</span>
-          <span className="font-bold text-primary">{stock.quantity}</span>
-        </li>
+          <Typography>{stock.itemName}</Typography>
+          <Typography color="primary" sx={{ fontWeight: 700 }}>
+            {stock.quantity}
+          </Typography>
+        </Box>
       ))}
-    </ul>
+    </Stack>
   )
 }

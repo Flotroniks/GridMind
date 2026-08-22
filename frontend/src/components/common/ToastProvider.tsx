@@ -1,4 +1,5 @@
 import { useCallback, useState, type ReactNode } from 'react'
+import { Alert, Snackbar, Stack } from '@mui/material'
 import { ToastContext, type ToastVariant } from './toastContext'
 
 interface Toast {
@@ -12,24 +13,34 @@ let nextId = 0
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
 
-  const showToast = useCallback((message: string, variant: ToastVariant = 'info') => {
-    const id = nextId++
-    setToasts((current) => [...current, { id, message, variant }])
-    setTimeout(() => {
-      setToasts((current) => current.filter((toast) => toast.id !== id))
-    }, 4000)
+  const dismiss = useCallback((id: number) => {
+    setToasts((current) => current.filter((toast) => toast.id !== id))
   }, [])
+
+  const showToast = useCallback(
+    (message: string, variant: ToastVariant = 'info') => {
+      const id = nextId++
+      setToasts((current) => [...current, { id, message, variant }])
+      setTimeout(() => dismiss(id), 4000)
+    },
+    [dismiss],
+  )
 
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <div className="toast toast-end toast-bottom z-50">
+      <Stack
+        spacing={1}
+        sx={{ position: 'fixed', bottom: 16, right: 16, zIndex: (theme) => theme.zIndex.snackbar }}
+      >
         {toasts.map((toast) => (
-          <div key={toast.id} role="alert" className={`alert alert-${toast.variant}`}>
-            <span>{toast.message}</span>
-          </div>
+          <Snackbar key={toast.id} open sx={{ position: 'static' }}>
+            <Alert severity={toast.variant} variant="filled" onClose={() => dismiss(toast.id)}>
+              {toast.message}
+            </Alert>
+          </Snackbar>
         ))}
-      </div>
+      </Stack>
     </ToastContext.Provider>
   )
 }

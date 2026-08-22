@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Box, Button, Card, CardContent, Stack, Typography } from '@mui/material'
 import { CreateLocationForm } from '../components/CreateLocationForm'
 import { LocationContents } from '../components/LocationContents'
 import { LocationTree } from '../components/LocationTree'
@@ -19,53 +20,54 @@ export function StorageHierarchyPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl">
-      <div className="card bg-base-200/80 shadow-xl backdrop-blur">
-        <div className="card-body">
-          <div className="mb-4">
-            <p className="text-xs font-semibold tracking-widest text-primary uppercase">
+    <Box sx={{ mx: 'auto', width: '100%', maxWidth: 768 }}>
+      <Card sx={{ backdropFilter: 'blur(8px)' }}>
+        <CardContent sx={{ p: 3 }}>
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="overline" color="primary" sx={{ fontWeight: 600, letterSpacing: 2 }}>
               GridMind
-            </p>
-            <h1 className="text-3xl font-bold sm:text-4xl">Stockage</h1>
-          </div>
+            </Typography>
+            <Typography variant="h4" sx={{ fontWeight: 700 }}>
+              Stockage
+            </Typography>
+          </Box>
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <div>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+            <Box>
               <LocationTree
                 parentId={currentId}
                 breadcrumb={breadcrumb}
                 onSelect={handleSelect}
                 onNavigateBreadcrumb={handleNavigateBreadcrumb}
               />
-              <div className="mt-4">
+              <Box sx={{ mt: 2 }}>
                 <CreateLocationForm parentId={currentId} />
-              </div>
-            </div>
+              </Box>
+            </Box>
 
-            <div>
-              <div className="mb-2 flex items-center justify-between">
-                <h2 className="font-semibold">Contenu</h2>
+            <Box>
+              <Stack
+                direction="row"
+                sx={{ mb: 1, alignItems: 'center', justifyContent: 'space-between' }}
+              >
+                <Typography sx={{ fontWeight: 600 }}>Contenu</Typography>
                 {currentId != null && (
-                  <button
-                    type="button"
-                    className="btn btn-xs"
-                    onClick={() => setMovingStock(true)}
-                  >
+                  <Button size="small" onClick={() => setMovingStock(true)}>
                     Déplacer du stock
-                  </button>
+                  </Button>
                 )}
-              </div>
+              </Stack>
               <LocationContents locationId={currentId} />
-            </div>
-          </div>
-        </div>
-      </div>
+            </Box>
+          </Box>
+        </CardContent>
+      </Card>
 
       <MoveStockDialog
         open={movingStock}
         fromLocationId={currentId}
         onClose={() => setMovingStock(false)}
       />
-    </div>
+    </Box>
   )
 }

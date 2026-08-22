@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { Box, Button, MenuItem, Stack, TextField } from '@mui/material'
 import type { Category } from '@/features/categories/types/Category'
 import type { ItemInput } from '../types/Item'
 
@@ -66,178 +67,153 @@ export function ItemForm({
   }
 
   return (
-    <form className="@container flex flex-col gap-4" onSubmit={handleSubmit}>
-      <div className="grid grid-cols-1 gap-4 @md:grid-cols-2">
-        <label className="fieldset-label flex-col items-stretch gap-2">
-          <span>Nom</span>
-          <input
-            type="text"
-            className="input input-bordered w-full"
-            value={form.name}
-            onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-            placeholder="Ex. ESP32-S3"
-            autoComplete="off"
-          />
-        </label>
+    <Stack component="form" spacing={2.5} onSubmit={handleSubmit}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2.5 }}>
+        <TextField
+          label="Nom"
+          value={form.name}
+          onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+          placeholder="Ex. ESP32-S3"
+          autoComplete="off"
+          fullWidth
+        />
 
-        <label className="fieldset-label flex-col items-stretch gap-2">
-          <span>Quantité</span>
-          <input
-            type="number"
-            min="0"
-            className="input input-bordered w-full"
-            value={form.quantity}
-            onChange={(event) =>
-              setForm((current) => ({ ...current, quantity: Number(event.target.value) }))
-            }
-          />
-        </label>
+        <TextField
+          label="Quantité"
+          type="number"
+          slotProps={{ htmlInput: { min: 0 } }}
+          value={form.quantity}
+          onChange={(event) =>
+            setForm((current) => ({ ...current, quantity: Number(event.target.value) }))
+          }
+          fullWidth
+        />
 
-        <label className="fieldset-label flex-col items-stretch gap-2">
-          <span>Quantité minimale</span>
-          <input
-            type="number"
-            min="0"
-            className="input input-bordered w-full"
-            value={form.minimumQuantity ?? 0}
-            onChange={(event) =>
-              setForm((current) => ({ ...current, minimumQuantity: Number(event.target.value) }))
-            }
-          />
-        </label>
+        <TextField
+          label="Quantité minimale"
+          type="number"
+          slotProps={{ htmlInput: { min: 0 } }}
+          value={form.minimumQuantity ?? 0}
+          onChange={(event) =>
+            setForm((current) => ({ ...current, minimumQuantity: Number(event.target.value) }))
+          }
+          fullWidth
+        />
 
-        <label className="fieldset-label flex-col items-stretch gap-2">
-          <span>Fabricant</span>
-          <input
-            type="text"
-            className="input input-bordered w-full"
-            value={form.manufacturer ?? ''}
-            onChange={(event) =>
-              setForm((current) => ({ ...current, manufacturer: event.target.value }))
-            }
-            autoComplete="off"
-          />
-        </label>
+        <TextField
+          label="Fabricant"
+          value={form.manufacturer ?? ''}
+          onChange={(event) =>
+            setForm((current) => ({ ...current, manufacturer: event.target.value }))
+          }
+          autoComplete="off"
+          fullWidth
+        />
 
-        <label className="fieldset-label flex-col items-stretch gap-2">
-          <span>Référence</span>
-          <input
-            type="text"
-            className="input input-bordered w-full"
-            value={form.reference ?? ''}
-            onChange={(event) =>
-              setForm((current) => ({ ...current, reference: event.target.value }))
-            }
-            autoComplete="off"
-          />
-        </label>
+        <TextField
+          label="Référence"
+          value={form.reference ?? ''}
+          onChange={(event) =>
+            setForm((current) => ({ ...current, reference: event.target.value }))
+          }
+          autoComplete="off"
+          fullWidth
+        />
 
-        <label className="fieldset-label flex-col items-stretch gap-2">
-          <span>Catégorie</span>
-          <select
-            className="select select-bordered w-full"
-            value={form.categoryId ?? ''}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                categoryId: event.target.value ? Number(event.target.value) : null,
-              }))
-            }
-          >
-            <option value="">Aucune</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
+        <TextField
+          select
+          label="Catégorie"
+          value={form.categoryId ?? ''}
+          onChange={(event) =>
+            setForm((current) => ({
+              ...current,
+              categoryId: event.target.value ? Number(event.target.value) : null,
+            }))
+          }
+          fullWidth
+        >
+          <MenuItem value="">Aucune</MenuItem>
+          {categories.map((category) => (
+            <MenuItem key={category.id} value={category.id}>
+              {category.name}
+            </MenuItem>
+          ))}
+        </TextField>
+      </Box>
 
-      <div className="flex gap-2">
-        <input
-          type="text"
-          className="input input-bordered input-sm flex-1"
+      <Stack direction="row" spacing={1}>
+        <TextField
+          size="small"
           placeholder="Nouvelle catégorie…"
           value={newCategoryName}
           onChange={(event) => setNewCategoryName(event.target.value)}
           autoComplete="off"
+          fullWidth
         />
-        <button type="button" className="btn btn-sm" onClick={() => void handleCreateCategory()}>
+        <Button variant="outlined" onClick={() => void handleCreateCategory()} sx={{ whiteSpace: 'nowrap' }}>
           Ajouter la catégorie
-        </button>
-      </div>
+        </Button>
+      </Stack>
 
-      <label className="fieldset-label flex-col items-stretch gap-2">
-        <span>Tags (séparés par des virgules)</span>
-        <input
-          type="text"
-          className="input input-bordered w-full"
-          value={tagsText}
-          onChange={(event) => setTagsText(event.target.value)}
-          placeholder="wifi, 3.3v, devkit"
-          autoComplete="off"
-        />
-      </label>
+      <TextField
+        label="Tags (séparés par des virgules)"
+        value={tagsText}
+        onChange={(event) => setTagsText(event.target.value)}
+        placeholder="wifi, 3.3v, devkit"
+        autoComplete="off"
+        fullWidth
+      />
 
-      <label className="fieldset-label flex-col items-stretch gap-2">
-        <span>Description</span>
-        <textarea
-          className="textarea textarea-bordered w-full"
-          value={form.description ?? ''}
+      <TextField
+        label="Description"
+        value={form.description ?? ''}
+        onChange={(event) =>
+          setForm((current) => ({ ...current, description: event.target.value }))
+        }
+        multiline
+        rows={2}
+        fullWidth
+      />
+
+      <TextField
+        label="Notes"
+        value={form.notes ?? ''}
+        onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
+        multiline
+        rows={2}
+        fullWidth
+      />
+
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2.5 }}>
+        <TextField
+          label="URL du produit"
+          type="url"
+          value={form.productUrl ?? ''}
           onChange={(event) =>
-            setForm((current) => ({ ...current, description: event.target.value }))
+            setForm((current) => ({ ...current, productUrl: event.target.value }))
           }
-          rows={2}
+          autoComplete="off"
+          fullWidth
         />
-      </label>
 
-      <label className="fieldset-label flex-col items-stretch gap-2">
-        <span>Notes</span>
-        <textarea
-          className="textarea textarea-bordered w-full"
-          value={form.notes ?? ''}
-          onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
-          rows={2}
+        <TextField
+          label="URL de la datasheet"
+          type="url"
+          value={form.datasheetUrl ?? ''}
+          onChange={(event) =>
+            setForm((current) => ({ ...current, datasheetUrl: event.target.value }))
+          }
+          autoComplete="off"
+          fullWidth
         />
-      </label>
+      </Box>
 
-      <div className="grid grid-cols-1 gap-4 @md:grid-cols-2">
-        <label className="fieldset-label flex-col items-stretch gap-2">
-          <span>URL du produit</span>
-          <input
-            type="url"
-            className="input input-bordered w-full"
-            value={form.productUrl ?? ''}
-            onChange={(event) =>
-              setForm((current) => ({ ...current, productUrl: event.target.value }))
-            }
-            autoComplete="off"
-          />
-        </label>
-
-        <label className="fieldset-label flex-col items-stretch gap-2">
-          <span>URL de la datasheet</span>
-          <input
-            type="url"
-            className="input input-bordered w-full"
-            value={form.datasheetUrl ?? ''}
-            onChange={(event) =>
-              setForm((current) => ({ ...current, datasheetUrl: event.target.value }))
-            }
-            autoComplete="off"
-          />
-        </label>
-      </div>
-
-      <div className="flex justify-end gap-2">
-        <button type="button" className="btn btn-ghost" onClick={onCancel}>
-          Annuler
-        </button>
-        <button type="submit" className="btn btn-primary" disabled={submitting}>
+      <Stack direction="row" spacing={1} sx={{ justifyContent: 'flex-end' }}>
+        <Button onClick={onCancel}>Annuler</Button>
+        <Button type="submit" variant="contained" disabled={submitting}>
           {submitLabel}
-        </button>
-      </div>
-    </form>
+        </Button>
+      </Stack>
+    </Stack>
   )
 }

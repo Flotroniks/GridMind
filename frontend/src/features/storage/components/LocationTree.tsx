@@ -1,4 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
+import {
+  Box,
+  Breadcrumbs,
+  CircularProgress,
+  Link as MuiLink,
+  List,
+  ListItemButton,
+  ListItemText,
+  Typography,
+} from '@mui/material'
 import * as storageApi from '../api/storageApi'
 
 interface LocationTreeProps {
@@ -20,44 +30,42 @@ export function LocationTree({
   })
 
   return (
-    <div>
-      <div className="breadcrumbs mb-3 text-sm">
-        <ul>
-          <li>
-            <button type="button" className="link link-hover" onClick={() => onNavigateBreadcrumb(-1)}>
-              Racine
-            </button>
-          </li>
-          {breadcrumb.map((crumb, index) => (
-            <li key={crumb.id}>
-              <button
-                type="button"
-                className="link link-hover"
-                onClick={() => onNavigateBreadcrumb(index)}
-              >
-                {crumb.name}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
+    <Box>
+      <Breadcrumbs sx={{ mb: 1.5 }}>
+        <MuiLink component="button" type="button" underline="hover" onClick={() => onNavigateBreadcrumb(-1)}>
+          Racine
+        </MuiLink>
+        {breadcrumb.map((crumb, index) => (
+          <MuiLink
+            key={crumb.id}
+            component="button"
+            type="button"
+            underline="hover"
+            onClick={() => onNavigateBreadcrumb(index)}
+          >
+            {crumb.name}
+          </MuiLink>
+        ))}
+      </Breadcrumbs>
 
       {isLoading ? (
-        <span className="loading loading-spinner loading-sm" />
+        <CircularProgress size={16} />
       ) : children.length === 0 ? (
-        <p className="text-sm text-base-content/60">Aucun emplacement enfant.</p>
+        <Typography variant="body2" color="textSecondary">
+          Aucun emplacement enfant.
+        </Typography>
       ) : (
-        <ul className="menu bg-base-100 rounded-box w-full">
+        <List disablePadding sx={{ bgcolor: 'background.default', borderRadius: 2 }}>
           {children.map((child) => (
-            <li key={child.id}>
-              <button type="button" onClick={() => onSelect(child.id, child.name)}>
-                {child.name}
-                {child.hasChildren && <span className="text-base-content/40">&rarr;</span>}
-              </button>
-            </li>
+            <ListItemButton key={child.id} onClick={() => onSelect(child.id, child.name)}>
+              <ListItemText primary={child.name} />
+              {child.hasChildren && (
+                <Typography color="textDisabled">&rarr;</Typography>
+              )}
+            </ListItemButton>
           ))}
-        </ul>
+        </List>
       )}
-    </div>
+    </Box>
   )
 }
