@@ -38,6 +38,9 @@ gridmind:
       base-url: ${DIGIKEY_BASE_URL:https://api.digikey.com}
       client-id: ${DIGIKEY_CLIENT_ID:}
       client-secret: ${DIGIKEY_CLIENT_SECRET:}
+    mouser:
+      base-url: ${MOUSER_BASE_URL:https://api.mouser.com}
+      api-key: ${MOUSER_API_KEY:}
 
 logging:
   level:
