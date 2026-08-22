@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Box, Button, MenuItem, Stack, TextField } from '@mui/material'
+import { Box, Button, FormControlLabel, MenuItem, Stack, Switch, TextField } from '@mui/material'
 import type { Category } from '@/features/categories/types/Category'
 import type { ItemInput } from '../types/Item'
 
@@ -24,6 +24,7 @@ const emptyForm: ItemInput = {
   productUrl: '',
   datasheetUrl: '',
   minimumQuantity: 0,
+  status: 'IN_SERVICE',
 }
 
 export function ItemForm({
@@ -140,6 +141,23 @@ export function ItemForm({
           ))}
         </TextField>
       </Box>
+
+      <FormControlLabel
+        control={
+          <Switch
+            checked={form.status === 'OUT_OF_SERVICE'}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                status: event.target.checked ? 'OUT_OF_SERVICE' : 'IN_SERVICE',
+              }))
+            }
+            color="error"
+          />
+        }
+        label="Objet hors service (HS)"
+        sx={{ width: 'fit-content' }}
+      />
 
       <Stack direction="row" spacing={1}>
         <TextField

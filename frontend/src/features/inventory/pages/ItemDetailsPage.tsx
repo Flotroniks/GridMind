@@ -96,9 +96,12 @@ export function ItemDetailsPage() {
             </Typography>
           </Box>
 
-          {item.categoryName && (
-            <Chip label={item.categoryName} size="small" color="primary" variant="outlined" sx={{ width: 'fit-content' }} />
-          )}
+          <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap' }}>
+            {item.status === 'OUT_OF_SERVICE' && <Chip label="Hors service" size="small" color="error" />}
+            {item.categoryName && (
+              <Chip label={item.categoryName} size="small" color="primary" variant="outlined" />
+            )}
+          </Stack>
 
           <TagBadgeList tags={item.tags} />
 

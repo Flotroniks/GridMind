@@ -28,6 +28,7 @@ function toItemInput(item: Item): ItemInput {
     productUrl: item.productUrl,
     datasheetUrl: item.datasheetUrl,
     minimumQuantity: item.minimumQuantity,
+    status: item.status,
   }
 }
 

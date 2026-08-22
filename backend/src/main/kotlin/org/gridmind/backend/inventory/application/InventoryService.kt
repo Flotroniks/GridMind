@@ -3,6 +3,7 @@ package org.gridmind.backend.inventory.application
 import org.gridmind.backend.category.infrastructure.persistence.CategoryEntity
 import org.gridmind.backend.category.infrastructure.persistence.CategoryRepository
 import org.gridmind.backend.inventory.domain.Item
+import org.gridmind.backend.inventory.domain.ItemStatus
 import org.gridmind.backend.inventory.infrastructure.persistence.ItemEntity
 import org.gridmind.backend.inventory.infrastructure.persistence.ItemRepository
 import org.gridmind.backend.inventory.infrastructure.persistence.ItemSpecifications
@@ -16,11 +17,11 @@ class InventoryService(
     private val itemRepository: ItemRepository,
     private val categoryRepository: CategoryRepository,
 ) {
-    fun findAll(): List<Item> = search(term = null, categoryId = null, manufacturer = null)
+    fun findAll(): List<Item> = search(term = null, categoryId = null, manufacturer = null, status = null)
 
     @Transactional(readOnly = true)
-    fun search(term: String?, categoryId: Long?, manufacturer: String?): List<Item> =
-        itemRepository.findAll(ItemSpecifications.buildSpec(term, categoryId, manufacturer))
+    fun search(term: String?, categoryId: Long?, manufacturer: String?, status: ItemStatus? = null): List<Item> =
+        itemRepository.findAll(ItemSpecifications.buildSpec(term, categoryId, manufacturer, status))
             .map(ItemEntity::toDomain)
 
     @Transactional(readOnly = true)
@@ -52,6 +53,7 @@ class InventoryService(
         entity.productUrl = item.productUrl?.trim()
         entity.datasheetUrl = item.datasheetUrl?.trim()
         entity.minimumQuantity = item.minimumQuantity
+        entity.status = item.status
 
         return itemRepository.save(entity).toDomain()
     }

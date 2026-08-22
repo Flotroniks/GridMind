@@ -62,7 +62,7 @@ export function ItemFilters({ value, categories, onChange }: ItemFiltersProps) {
         }}
       />
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 240px))' }, gap: 1.5 }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, minmax(0, 220px))' }, gap: 1.5 }}>
         <TextField
           select
           size="small"
@@ -88,6 +88,21 @@ export function ItemFilters({ value, categories, onChange }: ItemFiltersProps) {
           onChange={(event) => onChange({ ...value, manufacturer: event.target.value })}
           autoComplete="off"
         />
+        <TextField
+          select
+          size="small"
+          value={value.status ?? ''}
+          onChange={(event) =>
+            onChange({
+              ...value,
+              status: event.target.value ? (event.target.value as 'IN_SERVICE' | 'OUT_OF_SERVICE') : undefined,
+            })
+          }
+        >
+          <MenuItem value="">Tous les statuts</MenuItem>
+          <MenuItem value="IN_SERVICE">En service</MenuItem>
+          <MenuItem value="OUT_OF_SERVICE">Hors service</MenuItem>
+        </TextField>
       </Box>
     </Box>
   )

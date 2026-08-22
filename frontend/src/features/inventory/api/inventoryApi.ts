@@ -9,6 +9,7 @@ function toQueryString(filters?: ItemFilters): string {
   if (filters.search) params.set('search', filters.search)
   if (filters.categoryId != null) params.set('categoryId', String(filters.categoryId))
   if (filters.manufacturer) params.set('manufacturer', filters.manufacturer)
+  if (filters.status) params.set('status', filters.status)
   const query = params.toString()
   return query ? `?${query}` : ''
 }

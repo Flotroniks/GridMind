@@ -12,9 +12,13 @@ interface ItemRowProps {
 
 export function ItemRow({ item, onEditRequest, onDeleteRequest }: ItemRowProps) {
   const isLowStock = item.quantity <= item.minimumQuantity
+  const isOutOfService = item.status === 'OUT_OF_SERVICE'
 
   return (
-    <Card component="li" sx={{ listStyle: 'none', overflow: 'hidden' }}>
+    <Card
+      component="li"
+      sx={{ listStyle: 'none', overflow: 'hidden', opacity: isOutOfService ? 0.7 : 1 }}
+    >
       <Box
         component={Link}
         to={`/inventory/${item.id}`}
@@ -55,9 +59,12 @@ export function ItemRow({ item, onEditRequest, onDeleteRequest }: ItemRowProps) 
           </Typography>
         </Box>
 
-        {item.categoryName && (
-          <Chip label={item.categoryName} size="small" color="primary" variant="outlined" sx={{ width: 'fit-content' }} />
-        )}
+        <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap' }}>
+          {isOutOfService && <Chip label="Hors service" size="small" color="error" />}
+          {item.categoryName && (
+            <Chip label={item.categoryName} size="small" color="primary" variant="outlined" />
+          )}
+        </Stack>
 
         <TagBadgeList tags={item.tags} />
 

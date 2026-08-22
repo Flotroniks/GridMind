@@ -88,7 +88,7 @@ class ItemControllerTest {
     @Test
     fun `listItems passes search params through`() {
         `when`(categoryService.findAll()).thenReturn(emptyList())
-        `when`(inventoryService.search("esp", 2L, "Espressif")).thenReturn(emptyList())
+        `when`(inventoryService.search("esp", 2L, "Espressif", null)).thenReturn(emptyList())
 
         mockMvc.perform(get("/api/inventory/items?search=esp&categoryId=2&manufacturer=Espressif"))
             .andExpect(status().isOk)

@@ -4,6 +4,8 @@ import jakarta.persistence.CollectionTable
 import jakarta.persistence.Column
 import jakarta.persistence.ElementCollection
 import jakarta.persistence.Entity
+import jakarta.persistence.EnumType
+import jakarta.persistence.Enumerated
 import jakarta.persistence.FetchType
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
@@ -13,6 +15,7 @@ import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
 import org.gridmind.backend.category.infrastructure.persistence.CategoryEntity
 import org.gridmind.backend.inventory.domain.Item
+import org.gridmind.backend.inventory.domain.ItemStatus
 
 @Entity
 @Table(name = "inventory_items")
@@ -56,6 +59,10 @@ class ItemEntity(
 
     @Column(name = "minimum_quantity", nullable = false)
     var minimumQuantity: Int = 0,
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    var status: ItemStatus = ItemStatus.IN_SERVICE,
 ) {
     fun toDomain(): Item = Item(
         id = id,
@@ -70,6 +77,7 @@ class ItemEntity(
         productUrl = productUrl,
         datasheetUrl = datasheetUrl,
         minimumQuantity = minimumQuantity,
+        status = status,
     )
 
     companion object {
@@ -86,6 +94,7 @@ class ItemEntity(
             productUrl = item.productUrl?.trim(),
             datasheetUrl = item.datasheetUrl?.trim(),
             minimumQuantity = item.minimumQuantity,
+            status = item.status,
         )
     }
 }

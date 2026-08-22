@@ -1,5 +1,6 @@
 package org.gridmind.backend.inventory.infrastructure.persistence
 
+import org.gridmind.backend.inventory.domain.ItemStatus
 import org.springframework.data.jpa.domain.Specification
 
 /**
@@ -32,12 +33,23 @@ object ItemSpecifications {
         }
     }
 
-    fun buildSpec(term: String?, categoryId: Long?, manufacturer: String?): Specification<ItemEntity> =
+    fun hasStatus(status: ItemStatus?): Specification<ItemEntity>? {
+        if (status == null) return null
+        return Specification { root, _, cb -> cb.equal(root.get<ItemStatus>("status"), status) }
+    }
+
+    fun buildSpec(
+        term: String?,
+        categoryId: Long?,
+        manufacturer: String?,
+        status: ItemStatus? = null,
+    ): Specification<ItemEntity> =
         Specification.allOf(
             listOfNotNull(
                 hasNameLike(term),
                 hasCategoryId(categoryId),
                 hasManufacturerLike(manufacturer),
+                hasStatus(status),
             ),
         )
 }

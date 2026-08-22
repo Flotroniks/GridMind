@@ -20,6 +20,7 @@ data class Item(
     val productUrl: String? = null,
     val datasheetUrl: String? = null,
     val minimumQuantity: Int = 0,
+    val status: ItemStatus = ItemStatus.IN_SERVICE,
 ) {
     init {
         require(name.isNotBlank()) { "Item name must not be blank." }

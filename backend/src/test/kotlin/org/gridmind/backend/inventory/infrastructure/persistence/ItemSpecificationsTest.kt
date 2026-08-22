@@ -1,6 +1,7 @@
 package org.gridmind.backend.inventory.infrastructure.persistence
 
 import org.gridmind.backend.category.infrastructure.persistence.CategoryEntity
+import org.gridmind.backend.inventory.domain.ItemStatus
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -61,6 +62,17 @@ class ItemSpecificationsTest {
 
         assertEquals(1, result.size)
         assertEquals("ESP32-S3", result[0].name)
+    }
+
+    @Test
+    fun `buildSpec filters by status`() {
+        entityManager.persistAndFlush(ItemEntity(name = "ESP32-S3", quantity = 1, status = ItemStatus.IN_SERVICE))
+        entityManager.persistAndFlush(ItemEntity(name = "Broken fan", quantity = 1, status = ItemStatus.OUT_OF_SERVICE))
+
+        val result = itemRepository.findAll(ItemSpecifications.buildSpec(null, null, null, ItemStatus.OUT_OF_SERVICE))
+
+        assertEquals(1, result.size)
+        assertEquals("Broken fan", result[0].name)
     }
 
     @Test

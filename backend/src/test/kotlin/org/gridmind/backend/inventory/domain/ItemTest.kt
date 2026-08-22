@@ -32,4 +32,11 @@ class ItemTest {
 
         assertEquals("Item minimum quantity must be greater than or equal to 0.", exception.message)
     }
+
+    @Test
+    fun `item defaults to in service status`() {
+        val item = Item(name = "Wire", quantity = 1)
+
+        assertEquals(ItemStatus.IN_SERVICE, item.status)
+    }
 }
