@@ -65,14 +65,14 @@ export function ItemDetailsPage() {
         &larr; Retour à l'inventaire
       </Typography>
 
-      <Card sx={{ backdropFilter: 'blur(8px)', overflow: 'hidden' }}>
+      <Card variant="outlined" sx={{ backdropFilter: 'blur(8px)', overflow: 'hidden', borderColor: 'divider' }}>
         <Box
           sx={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             aspectRatio: '16 / 9',
-            bgcolor: 'action.hover',
+            bgcolor: 'background.default',
             color: 'text.disabled',
           }}
         >

@@ -14,7 +14,11 @@ export function ItemRow({ item, onEditRequest, onDeleteRequest }: ItemRowProps) 
   const isLowStock = item.quantityAvailable <= item.minimumQuantity
 
   return (
-    <Card component="li" sx={{ listStyle: 'none', overflow: 'hidden' }}>
+    <Card
+      component="li"
+      variant="outlined"
+      sx={{ listStyle: 'none', overflow: 'hidden', borderColor: 'divider' }}
+    >
       <Box
         component={Link}
         to={`/inventory/${item.id}`}
@@ -23,7 +27,7 @@ export function ItemRow({ item, onEditRequest, onDeleteRequest }: ItemRowProps) 
           alignItems: 'center',
           justifyContent: 'center',
           aspectRatio: '4 / 3',
-          bgcolor: 'action.hover',
+          bgcolor: 'background.default',
           color: 'text.disabled',
         }}
       >

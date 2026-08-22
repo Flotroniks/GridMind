@@ -113,7 +113,7 @@ export function InventoryPage() {
 
   return (
     <Box sx={{ mx: 'auto', width: { xs: '100%', sm: '75vw' }, maxWidth: 1600 }}>
-      <Card sx={{ backdropFilter: 'blur(8px)' }}>
+      <Card variant="outlined" sx={{ backdropFilter: 'blur(8px)', borderColor: 'divider' }}>
         <CardContent sx={{ py: 3, px: { xs: 3, sm: 5, md: 8 } }}>
           <Stack
             direction={{ xs: 'column', sm: 'row' }}

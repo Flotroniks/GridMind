@@ -21,7 +21,7 @@ export function StorageHierarchyPage() {
 
   return (
     <Box sx={{ mx: 'auto', width: { xs: '100%', sm: '75vw' }, maxWidth: 1600 }}>
-      <Card sx={{ backdropFilter: 'blur(8px)' }}>
+      <Card variant="outlined" sx={{ backdropFilter: 'blur(8px)', borderColor: 'divider' }}>
         <CardContent sx={{ py: 3, px: { xs: 3, sm: 5, md: 8 } }}>
           <Box sx={{ mb: 2 }}>
             <Typography variant="overline" color="primary" sx={{ fontWeight: 600, letterSpacing: 2 }}>
