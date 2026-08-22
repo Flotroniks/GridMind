@@ -1,0 +1,106 @@
+{
+  "nav": {
+    "inventory": "Inventaire",
+    "storage": "Stockage"
+  },
+  "common": {
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "add": "Ajouter"
+  },
+  "inventory": {
+    "title": "Inventaire",
+    "addItem": "Ajouter un objet",
+    "loading": "Chargement de l'inventaire…",
+    "empty": "Aucun objet pour l'instant.",
+    "loadError": "Impossible de charger l'inventaire.",
+    "categoriesLoadError": "Impossible de charger les catégories.",
+    "createSuccess": "Objet ajouté.",
+    "createError": "Création impossible.",
+    "updateSuccess": "Objet mis à jour.",
+    "updateError": "Mise à jour impossible.",
+    "deleteSuccess": "Objet supprimé.",
+    "deleteError": "Suppression impossible.",
+    "modalCreateTitle": "Ajouter un objet",
+    "modalEditTitle": "Modifier l'objet",
+    "fields": {
+      "name": "Nom",
+      "namePlaceholder": "Ex. ESP32-S3",
+      "quantity": "Quantité",
+      "minimumQuantity": "Quantité minimale",
+      "manufacturer": "Fabricant",
+      "reference": "Référence",
+      "category": "Catégorie",
+      "categoryNone": "Aucune",
+      "newCategoryPlaceholder": "Nouvelle catégorie…",
+      "addCategory": "Ajouter la catégorie",
+      "tags": "Tags (séparés par des virgules)",
+      "tagsPlaceholder": "wifi, 3.3v, devkit",
+      "description": "Description",
+      "notes": "Notes",
+      "productUrl": "URL du produit",
+      "datasheetUrl": "URL de la datasheet"
+    },
+    "filters": {
+      "search": "Rechercher…",
+      "allCategories": "Toutes les catégories",
+      "manufacturer": "Fabricant…"
+    },
+    "row": {
+      "edit": "Modifier",
+      "delete": "Supprimer",
+      "lowStock": "Stock sous le seuil minimal ({{minimum}})"
+    },
+    "deleteDialog": {
+      "title": "Supprimer l'objet",
+      "confirmPrefix": "Confirmer la suppression de ",
+      "confirmSuffix": " ? Cette action est irréversible."
+    },
+    "details": {
+      "back": "Retour à l'inventaire",
+      "loading": "Chargement…",
+      "loadError": "Impossible de charger l'objet.",
+      "notFound": "Objet introuvable.",
+      "minimumQuantity": "Quantité minimale : ",
+      "productLink": "Page produit",
+      "datasheetLink": "Datasheet",
+      "notesLabel": "Notes",
+      "storageLocations": "Emplacements de stockage"
+    },
+    "stockLocations": {
+      "empty": "Cet objet n'est stocké nulle part."
+    }
+  },
+  "storage": {
+    "title": "Stockage",
+    "root": "Racine",
+    "noChildren": "Aucun emplacement enfant.",
+    "contents": "Contenu",
+    "selectLocation": "Sélectionnez un emplacement.",
+    "empty": "Aucun objet stocké ici.",
+    "newLocationPlaceholder": "Nouvel emplacement…",
+    "createSuccess": "Emplacement créé.",
+    "createError": "Création impossible.",
+    "moveStock": "Déplacer du stock",
+    "item": "Objet",
+    "destination": "Destination",
+    "quantity": "Quantité",
+    "select": "Sélectionner…",
+    "move": "Déplacer",
+    "moveSuccess": "Stock déplacé.",
+    "moveError": "Déplacement impossible.",
+    "hereCount": "{{count}} ici"
+  },
+  "errors": {
+    "network": "Impossible de contacter le serveur. Vérifiez votre connexion.",
+    "unexpected": "Une erreur inattendue est survenue.",
+    "boundaryTitle": "Une erreur est survenue",
+    "boundaryMessage": "Quelque chose s'est mal passé. Essayez de recharger la page.",
+    "reload": "Recharger la page"
+  },
+  "notFoundPage": {
+    "title": "Page introuvable",
+    "message": "Cette page n'existe pas.",
+    "backHome": "Retour à l'accueil"
+  }
+}

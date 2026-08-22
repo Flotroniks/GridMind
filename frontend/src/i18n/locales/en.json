@@ -1,0 +1,106 @@
+{
+  "nav": {
+    "inventory": "Inventory",
+    "storage": "Storage"
+  },
+  "common": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "add": "Add"
+  },
+  "inventory": {
+    "title": "Inventory",
+    "addItem": "Add an item",
+    "loading": "Loading inventory…",
+    "empty": "No items yet.",
+    "loadError": "Unable to load the inventory.",
+    "categoriesLoadError": "Unable to load categories.",
+    "createSuccess": "Item added.",
+    "createError": "Could not create the item.",
+    "updateSuccess": "Item updated.",
+    "updateError": "Could not update the item.",
+    "deleteSuccess": "Item deleted.",
+    "deleteError": "Could not delete the item.",
+    "modalCreateTitle": "Add an item",
+    "modalEditTitle": "Edit item",
+    "fields": {
+      "name": "Name",
+      "namePlaceholder": "e.g. ESP32-S3",
+      "quantity": "Quantity",
+      "minimumQuantity": "Minimum quantity",
+      "manufacturer": "Manufacturer",
+      "reference": "Reference",
+      "category": "Category",
+      "categoryNone": "None",
+      "newCategoryPlaceholder": "New category…",
+      "addCategory": "Add category",
+      "tags": "Tags (comma-separated)",
+      "tagsPlaceholder": "wifi, 3.3v, devkit",
+      "description": "Description",
+      "notes": "Notes",
+      "productUrl": "Product URL",
+      "datasheetUrl": "Datasheet URL"
+    },
+    "filters": {
+      "search": "Search…",
+      "allCategories": "All categories",
+      "manufacturer": "Manufacturer…"
+    },
+    "row": {
+      "edit": "Edit",
+      "delete": "Delete",
+      "lowStock": "Stock below minimum threshold ({{minimum}})"
+    },
+    "deleteDialog": {
+      "title": "Delete item",
+      "confirmPrefix": "Confirm deletion of ",
+      "confirmSuffix": "? This action cannot be undone."
+    },
+    "details": {
+      "back": "Back to inventory",
+      "loading": "Loading…",
+      "loadError": "Unable to load the item.",
+      "notFound": "Item not found.",
+      "minimumQuantity": "Minimum quantity: ",
+      "productLink": "Product page",
+      "datasheetLink": "Datasheet",
+      "notesLabel": "Notes",
+      "storageLocations": "Storage locations"
+    },
+    "stockLocations": {
+      "empty": "This item isn't stored anywhere."
+    }
+  },
+  "storage": {
+    "title": "Storage",
+    "root": "Root",
+    "noChildren": "No child locations.",
+    "contents": "Contents",
+    "selectLocation": "Select a location.",
+    "empty": "No items stored here.",
+    "newLocationPlaceholder": "New location…",
+    "createSuccess": "Location created.",
+    "createError": "Could not create the location.",
+    "moveStock": "Move stock",
+    "item": "Item",
+    "destination": "Destination",
+    "quantity": "Quantity",
+    "select": "Select…",
+    "move": "Move",
+    "moveSuccess": "Stock moved.",
+    "moveError": "Could not move stock.",
+    "hereCount": "{{count}} here"
+  },
+  "errors": {
+    "network": "Couldn't reach the server. Check your connection.",
+    "unexpected": "An unexpected error occurred.",
+    "boundaryTitle": "Something went wrong",
+    "boundaryMessage": "Something broke. Try reloading the page.",
+    "reload": "Reload page"
+  },
+  "notFoundPage": {
+    "title": "Page not found",
+    "message": "This page doesn't exist.",
+    "backHome": "Back to home"
+  }
+}
