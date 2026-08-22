@@ -18,7 +18,7 @@ export function ItemList({ items, onEditRequest, onDeleteRequest }: ItemListProp
       component="ul"
       sx={{
         display: 'grid',
-        gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
+        gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
         gap: 2,
         p: 0,
         m: 0,

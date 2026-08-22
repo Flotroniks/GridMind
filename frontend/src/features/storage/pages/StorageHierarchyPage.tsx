@@ -20,7 +20,7 @@ export function StorageHierarchyPage() {
   }
 
   return (
-    <Box sx={{ mx: 'auto', width: '100%', maxWidth: 768 }}>
+    <Box sx={{ mx: 'auto', width: '100%', maxWidth: 'min(1600px, 92vw)' }}>
       <Card sx={{ backdropFilter: 'blur(8px)' }}>
         <CardContent sx={{ p: 3 }}>
           <Box sx={{ mb: 2 }}>

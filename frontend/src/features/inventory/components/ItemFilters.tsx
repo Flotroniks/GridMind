@@ -1,5 +1,7 @@
-import { Box, InputAdornment, MenuItem, TextField } from '@mui/material'
+import { Box, IconButton, InputAdornment, MenuItem, TextField } from '@mui/material'
+import { alpha } from '@mui/material/styles'
 import SearchIcon from '@mui/icons-material/Search'
+import ClearIcon from '@mui/icons-material/Clear'
 import type { Category } from '@/features/categories/types/Category'
 import type { ItemFilters as ItemFiltersValue } from '../types/Item'
 
@@ -10,11 +12,13 @@ interface ItemFiltersProps {
 }
 
 export function ItemFilters({ value, categories, onChange }: ItemFiltersProps) {
+  const search = value.search ?? ''
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
       <TextField
         placeholder="Rechercher un objet, une référence, un tag…"
-        value={value.search ?? ''}
+        value={search}
         onChange={(event) => onChange({ ...value, search: event.target.value })}
         autoComplete="off"
         fullWidth
@@ -22,15 +26,38 @@ export function ItemFilters({ value, categories, onChange }: ItemFiltersProps) {
           input: {
             startAdornment: (
               <InputAdornment position="start">
-                <SearchIcon color="action" />
+                <SearchIcon color="primary" sx={{ fontSize: 26, ml: 0.5 }} />
               </InputAdornment>
             ),
+            endAdornment: search ? (
+              <InputAdornment position="end">
+                <IconButton
+                  size="small"
+                  onClick={() => onChange({ ...value, search: '' })}
+                  aria-label="Effacer la recherche"
+                >
+                  <ClearIcon fontSize="small" />
+                </IconButton>
+              </InputAdornment>
+            ) : undefined,
           },
         }}
         sx={{
           '& .MuiOutlinedInput-root': {
-            fontSize: '1.25rem',
-            py: 0.5,
+            fontSize: { xs: '1.1rem', sm: '1.35rem' },
+            borderRadius: 999,
+            py: 0.75,
+            px: 1,
+            bgcolor: (theme) => alpha(theme.palette.primary.main, theme.palette.mode === 'dark' ? 0.16 : 0.06),
+            transition: 'background-color .2s ease, box-shadow .2s ease',
+            '& fieldset': { border: 'none' },
+            '&:hover': {
+              bgcolor: (theme) => alpha(theme.palette.primary.main, theme.palette.mode === 'dark' ? 0.22 : 0.09),
+            },
+            '&.Mui-focused': {
+              bgcolor: 'background.paper',
+              boxShadow: (theme) => `0 0 0 3px ${alpha(theme.palette.primary.main, 0.35)}`,
+            },
           },
         }}
       />
