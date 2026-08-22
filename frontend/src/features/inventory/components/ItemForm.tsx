@@ -155,6 +155,7 @@ export function ItemForm({
             }))
           }
           fullWidth
+          slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }}
         >
           <MenuItem value="">Aucune</MenuItem>
           {categories.map((category) => (

@@ -71,6 +71,7 @@ export function ItemFilters({ value, categories, onChange }: ItemFiltersProps) {
               categoryId: event.target.value ? Number(event.target.value) : undefined,
             })
           }
+          slotProps={{ select: { displayEmpty: true } }}
         >
           <MenuItem value="">Toutes les catégories</MenuItem>
           {categories.map((category) => (

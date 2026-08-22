@@ -71,6 +71,7 @@ export function MoveStockDialog({ open, fromLocationId, onClose }: MoveStockDial
             value={itemId}
             onChange={(event) => setItemId(event.target.value ? Number(event.target.value) : '')}
             fullWidth
+            slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }}
           >
             <MenuItem value="">{t('storage.select')}</MenuItem>
             {contents.map((stock) => (
@@ -88,6 +89,7 @@ export function MoveStockDialog({ open, fromLocationId, onClose }: MoveStockDial
               setToLocationId(event.target.value ? Number(event.target.value) : '')
             }
             fullWidth
+            slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }}
           >
             <MenuItem value="">{t('storage.select')}</MenuItem>
             {locations
