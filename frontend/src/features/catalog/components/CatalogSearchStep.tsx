@@ -126,7 +126,7 @@ export function CatalogSearchStep({ onSelect, onManualCreateRequest }: CatalogSe
         >
           {results.map((result) => (
             <Card
-              key={`${result.manufacturer ?? ''}-${result.mpn}`}
+              key={`${result.manufacturer ?? ''}-${result.mpn ?? result.name}`}
               variant="outlined"
               sx={{ overflow: 'hidden', borderColor: 'divider', display: 'flex', flexDirection: 'column' }}
             >
@@ -161,9 +161,11 @@ export function CatalogSearchStep({ onSelect, onManualCreateRequest }: CatalogSe
                     {result.manufacturer}
                   </Typography>
                 )}
-                <Typography variant="body2" color="textSecondary">
-                  {result.mpn}
-                </Typography>
+                {result.mpn && (
+                  <Typography variant="body2" color="textSecondary">
+                    {result.mpn}
+                  </Typography>
+                )}
 
                 {result.sources.length > 0 && (
                   <Typography variant="caption" color="textSecondary" sx={{ mt: 0.5 }}>

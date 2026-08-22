@@ -2,7 +2,7 @@ package org.gridmind.backend.catalog.infrastructure.provider.digikey
 
 import org.gridmind.backend.catalog.domain.CatalogImage
 import org.gridmind.backend.catalog.domain.CatalogResult
-import org.gridmind.backend.catalog.infrastructure.provider.ProductCatalogProvider
+import org.gridmind.backend.catalog.application.ProductCatalogProvider
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression
 import org.springframework.stereotype.Component
@@ -33,10 +33,11 @@ class DigiKeyProductCatalogProvider(
 }
 
 /**
- * A product missing its MPN can't be mapped (it's the one field GridMind requires) and is
- * silently skipped — DigiKey's search occasionally returns sparse/legacy records like that.
- * Kept as a standalone function (not a method) so it's testable without spinning up a
- * client or a Spring context.
+ * `CatalogResult.mpn` is optional at the model level (maker hardware often has none), but
+ * for DigiKey specifically a missing MPN means a sparse/legacy record rather than a real
+ * product — those are silently skipped rather than surfaced as search noise. Kept as a
+ * standalone function (not a method) so it's testable without spinning up a client or a
+ * Spring context.
  */
 internal fun DigiKeyProduct.toCatalogResult(providerName: String): CatalogResult? {
     val mpn = manufacturerProductNumber?.takeIf { it.isNotBlank() } ?: return null

@@ -52,4 +52,16 @@ class CatalogControllerTest {
         mockMvc.perform(get("/api/catalog/search").param("query", "   "))
             .andExpect(status().isBadRequest)
     }
+
+    @Test
+    fun `search returns results without an mpn, for maker hardware without a real part number`() {
+        `when`(productSearchService.search("d1 mini")).thenReturn(
+            listOf(CatalogResult(name = "Wemos D1 Mini", manufacturer = "Wemos", sources = listOf("Fake"))),
+        )
+
+        mockMvc.perform(get("/api/catalog/search").param("query", "d1 mini"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$[0].name").value("Wemos D1 Mini"))
+            .andExpect(jsonPath("$[0].mpn").doesNotExist())
+    }
 }

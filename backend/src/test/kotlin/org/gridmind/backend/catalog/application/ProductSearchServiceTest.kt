@@ -1,7 +1,6 @@
 package org.gridmind.backend.catalog.application
 
 import org.gridmind.backend.catalog.domain.CatalogResult
-import org.gridmind.backend.catalog.infrastructure.provider.ProductCatalogProvider
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test

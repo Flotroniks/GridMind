@@ -1,5 +1,6 @@
 package org.gridmind.backend.catalog.infrastructure.provider
 
+import org.gridmind.backend.catalog.application.ProductCatalogProvider
 import org.gridmind.backend.catalog.domain.CatalogImage
 import org.gridmind.backend.catalog.domain.CatalogResult
 
@@ -15,7 +16,7 @@ class FakeProductCatalogProvider(override val name: String = "Fake") : ProductCa
         if (query.isBlank()) return emptyList()
         return catalog.filter { result ->
             result.name.contains(query, ignoreCase = true) ||
-                result.mpn.contains(query, ignoreCase = true) ||
+                result.mpn?.contains(query, ignoreCase = true) == true ||
                 result.manufacturer?.contains(query, ignoreCase = true) == true
         }
     }
@@ -52,6 +53,17 @@ class FakeProductCatalogProvider(override val name: String = "Fake") : ProductCa
                 datasheetUrl = "https://www.bosch-sensortec.com/media/boschsensortec/downloads/" +
                     "datasheets/bst-bme280-ds002.pdf",
                 images = listOf(CatalogImage(url = "https://example.com/bme280.jpg", provider = "Fake")),
+                sources = listOf("Fake"),
+            ),
+            CatalogResult(
+                name = "Wemos D1 Mini",
+                manufacturer = "Wemos",
+                // Maker boards like this one rarely have a real manufacturer part number —
+                // mpn is deliberately left unset to exercise that path end to end.
+                mpn = null,
+                description = "ESP8266-based Wi-Fi development board, Arduino-compatible.",
+                category = "Development Boards",
+                images = listOf(CatalogImage(url = "https://example.com/d1-mini.jpg", provider = "Fake")),
                 sources = listOf("Fake"),
             ),
         )

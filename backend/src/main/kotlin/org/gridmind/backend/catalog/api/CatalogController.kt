@@ -33,7 +33,7 @@ data class CatalogImageResponse(
 data class CatalogResultResponse(
     val name: String,
     val manufacturer: String?,
-    val mpn: String,
+    val mpn: String?,
     val description: String?,
     val category: String?,
     val datasheetUrl: String?,

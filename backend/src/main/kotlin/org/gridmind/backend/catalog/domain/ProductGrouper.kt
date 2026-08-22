@@ -7,7 +7,9 @@ package org.gridmind.backend.catalog.domain
  * Grouping is deterministic — normalized manufacturer + normalized MPN — deliberately
  * with no fuzzy matching. A result missing a manufacturer still merges into an existing
  * group when its MPN matches and doing so wouldn't conflict with a manufacturer already
- * recorded on that group.
+ * recorded on that group. A result missing its MPN entirely (common for maker hardware
+ * without a real part number) is never merged with anything, in either direction — there's
+ * no reliable key to merge on, so it's always kept as its own entry.
  */
 object ProductGrouper {
 
@@ -15,13 +17,15 @@ object ProductGrouper {
         val groups = mutableListOf<MutableGroup>()
 
         for (result in results) {
-            val normalizedMpn = normalize(result.mpn)
+            val normalizedMpn = result.mpn?.let(::normalize)
             val normalizedManufacturer = result.manufacturer?.let(::normalize)
 
-            val match = groups.firstOrNull { group ->
-                group.normalizedMpn == normalizedMpn &&
-                    (group.normalizedManufacturer == null || normalizedManufacturer == null ||
-                        group.normalizedManufacturer == normalizedManufacturer)
+            val match = normalizedMpn?.let { mpn ->
+                groups.firstOrNull { group ->
+                    group.normalizedMpn == mpn &&
+                        (group.normalizedManufacturer == null || normalizedManufacturer == null ||
+                            group.normalizedManufacturer == normalizedManufacturer)
+                }
             }
 
             if (match != null) {
@@ -39,7 +43,7 @@ object ProductGrouper {
 
     private class MutableGroup(
         first: CatalogResult,
-        val normalizedMpn: String,
+        val normalizedMpn: String?,
         var normalizedManufacturer: String?,
     ) {
         private val name = first.name

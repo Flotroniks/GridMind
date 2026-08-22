@@ -88,4 +88,27 @@ class ProductGrouperTest {
         assertEquals("Bosch", grouped.single().manufacturer)
         assertEquals(setOf("DigiKey", "PartsDB"), grouped.single().sources.toSet())
     }
+
+    @Test
+    fun `results without an mpn are never merged, even with the same name and manufacturer`() {
+        // Maker boards often don't have a real MPN — with no reliable key to merge on,
+        // two results from different providers for what might be the same board are kept
+        // as separate entries rather than guessed into one.
+        val fromProviderA = CatalogResult(name = "Wemos D1 Mini", manufacturer = "Wemos", mpn = null, sources = listOf("A"))
+        val fromProviderB = CatalogResult(name = "Wemos D1 Mini", manufacturer = "Wemos", mpn = null, sources = listOf("B"))
+
+        val grouped = ProductGrouper.group(listOf(fromProviderA, fromProviderB))
+
+        assertEquals(2, grouped.size)
+    }
+
+    @Test
+    fun `an mpn-less result never absorbs a later result that does have an mpn`() {
+        val makerBoard = CatalogResult(name = "Generic ESP32 board", manufacturer = "Acme", mpn = null, sources = listOf("A"))
+        val distributorPart = CatalogResult(name = "Generic ESP32 board", manufacturer = "Acme", mpn = "ESP32-GEN", sources = listOf("B"))
+
+        val grouped = ProductGrouper.group(listOf(makerBoard, distributorPart))
+
+        assertEquals(2, grouped.size)
+    }
 }

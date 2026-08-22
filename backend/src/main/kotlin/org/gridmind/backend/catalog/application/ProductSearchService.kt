@@ -2,7 +2,6 @@ package org.gridmind.backend.catalog.application
 
 import org.gridmind.backend.catalog.domain.CatalogResult
 import org.gridmind.backend.catalog.domain.ProductGrouper
-import org.gridmind.backend.catalog.infrastructure.provider.ProductCatalogProvider
 import org.slf4j.LoggerFactory
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service

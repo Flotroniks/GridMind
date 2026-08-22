@@ -108,7 +108,7 @@ When adding an inventory item, GridMind can look it up across external parts cat
 | [Mouser](https://www.mouser.com/api-hub/) | Electronic components | **Supported**¹ | API key | Yes | Second source, used to validate cross-provider grouping |
 | [Octopart / Nexar](https://nexar.com/api) | Electronic components aggregator | **Rejected** | OAuth2 | Yes | — its terms cap caching at 24h and forbid self-hosting images, which conflicts directly with this project's "keep images locally, indefinitely" goal |
 | [partsdb.io](https://www.partsdb.io/) | Electronic components (reichelt/Conrad, EU-focused) | **Planned** | API key | Not confirmed in its docs | Low-friction fallback (plain key, no OAuth, permissive terms) if DigiKey/Mouser coverage is ever insufficient |
-| Maker/dev-board catalogs (Adafruit, SparkFun, ...) | Maker hardware | **Planned** | Not researched | Not researched | Breakout boards and dev boards — DigiKey/Mouser already surface some of these (e.g. searching "BME280" returns SparkFun and Adafruit boards), but a dedicated maker catalog isn't implemented |
+| Maker/dev-board catalogs (Adafruit, SparkFun, ...) | Maker hardware | **Planned** | Not researched | Not researched | Breakout boards and dev boards — DigiKey/Mouser already surface some of these (e.g. searching "BME280" returns SparkFun and Adafruit boards), but a dedicated maker catalog isn't implemented. The common model no longer blocks this: `CatalogResult.mpn` is optional (see below), so a future maker provider can plug in without a model change |
 
 ¹ Code is implemented and its mapping is validated against Mouser's real API schema, but Mouser reviews every API key request manually (1-2 business days) — a freshly issued key won't return results until it's approved on Mouser's side. Nothing on the GridMind side needs to change once that happens.
 
@@ -145,7 +145,9 @@ Provider-specific response types (e.g. `DigiKeyProduct`, `MouserPart`) never lea
 Two different kinds of source exist conceptually:
 
 - **Electronic component distributors** (DigiKey, Mouser) — precise, MPN-driven, huge catalogs, built for sourcing parts at scale. This is what's implemented today.
-- **Maker/dev-board catalogs** (Adafruit, SparkFun, generic Arduino/ESP32 module listings) — better suited to hobbyist boards that don't always have a distributor-style MPN. Not implemented yet; see the [Adding a new provider](#adding-a-new-provider) section below. Note that `CatalogResult` currently *requires* a non-blank MPN, so accommodating a maker source without one would need a small model change first.
+- **Maker/dev-board catalogs** (Adafruit, SparkFun, generic Arduino/ESP32 module listings) — better suited to hobbyist boards that don't always have a distributor-style MPN. Not implemented yet; see the [Adding a new provider](#adding-a-new-provider) section below.
+
+`CatalogResult.mpn` is optional (`String?`), precisely so the common model doesn't force maker hardware into a distributor shape it doesn't have: a Wemos D1 Mini, a NodeMCU, an ESP32-CAM breakout, or a generic sensor module rarely carries a real MPN, and GridMind shouldn't require one to be searchable or inventoriable. `ProductGrouper` treats a missing MPN as "no reliable merge key" rather than a wildcard — two MPN-less results are never merged into each other, even with the same name and manufacturer, and an MPN-less result never absorbs (or is absorbed by) one that does have an MPN. This keeps grouping deterministic without guessing.
 
 ### Search aggregation
 
@@ -187,13 +189,20 @@ Once downloaded, an image no longer depends on the provider or on internet acces
 
 ### Adding a new provider
 
-1. Implement the `ProductCatalogProvider` interface (`catalog/infrastructure/provider/ProductCatalogProvider.kt`) in a new subpackage `catalog/infrastructure/provider/<name>/`.
+1. Implement the `ProductCatalogProvider` port (`catalog/application/ProductCatalogProvider.kt`) in a new adapter subpackage `catalog/infrastructure/provider/<name>/`.
 2. Keep that provider's own request/response DTOs private to its own package — see `digikey/` or `mouser/` for the pattern.
-3. Map its results to `CatalogResult`/`CatalogImage`; skip anything that can't be mapped (e.g. no MPN).
+3. Map its results to `CatalogResult`/`CatalogImage`; skip anything that can't be mapped (e.g. no name). A missing MPN is fine — leave it `null` rather than inventing one.
 4. Register it as a Spring bean gated by `@ConditionalOnExpression` on its required config being non-empty, so the app keeps working with it unconfigured.
 5. Add its config under `gridmind.catalog.<name>` in `application.yaml`, backed by env vars documented in `.env.example`.
 6. Write a pure mapping test (no network) plus a live test gated by `@EnabledIfEnvironmentVariable`, so `./gradlew test` never needs real credentials to pass.
 7. Update the table above.
+
+### Architecture decisions
+
+GridMind is a modular monolith, not a full hexagonal/clean-architecture rewrite: `domain`/`application`/`infrastructure`/`api` layering is applied per feature only where it earns its keep, and only external dependencies (catalog providers, image storage) sit behind an explicit port. No generic factories, no `Service`/`ServiceImpl` pairs, no interface for something with a single implementation and no foreseeable second one.
+
+- **`ProductCatalogProvider` is a port in `catalog/application/`, not `catalog/infrastructure/`.** It's the seam the catalog feature depends on to reach the outside world (DigiKey, Mouser, the in-memory fake), so it belongs with the use case that depends on it (`ProductSearchService`), not with the adapters that implement it. This mirrors the existing `ImageDownloader` port in `inventory/application/` (implemented by `RestClientImageDownloader` in `inventory/infrastructure/media/`) — one consistent pattern for "external dependency behind a port," applied to both features rather than invented twice.
+- **`CatalogResult.mpn` is `String?`, not `String`.** The initial model made MPN mandatory, which is true for DigiKey/Mouser-style distributor data but not for maker hardware (dev boards, breakout boards, common sensor modules), which often has no real MPN at all. Rather than inventing a placeholder value, the model allows `null` and `ProductGrouper` treats it as "no merge key" — see [Provider selection](#provider-selection).
 
 ## Notes
 

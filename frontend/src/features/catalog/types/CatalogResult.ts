@@ -6,7 +6,7 @@ export interface CatalogImage {
 export interface CatalogResult {
   name: string
   manufacturer: string | null
-  mpn: string
+  mpn: string | null
   description: string | null
   category: string | null
   datasheetUrl: string | null
