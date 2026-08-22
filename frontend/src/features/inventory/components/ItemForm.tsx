@@ -67,7 +67,7 @@ export function ItemForm({
   }
 
   return (
-    <Stack component="form" spacing={2.5} onSubmit={handleSubmit}>
+    <Stack component="form" spacing={2.5} onSubmit={handleSubmit} sx={{ pt: 1 }}>
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2.5 }}>
         <TextField
           label="Nom"

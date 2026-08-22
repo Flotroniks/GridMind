@@ -64,7 +64,7 @@ export function MoveStockDialog({ open, fromLocationId, onClose }: MoveStockDial
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>{t('storage.moveStock')}</DialogTitle>
       <DialogContent>
-        <Stack spacing={2.5} sx={{ mt: 0.5 }}>
+        <Stack spacing={2.5} sx={{ pt: 1 }}>
           <TextField
             select
             label={t('storage.item')}
