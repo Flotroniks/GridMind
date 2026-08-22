@@ -1,6 +1,7 @@
 import { Box, Button, Card, CardContent, Chip, Stack, Typography } from '@mui/material'
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined'
 import { Link } from 'react-router'
+import { resolveMediaUrl } from '@/lib/apiClient'
 import type { Item } from '../types/Item'
 import { TagBadgeList } from './TagBadgeList'
 
@@ -31,7 +32,16 @@ export function ItemRow({ item, onEditRequest, onDeleteRequest }: ItemRowProps) 
           color: 'text.disabled',
         }}
       >
-        <ImageOutlinedIcon sx={{ fontSize: 48 }} />
+        {item.imageUrl ? (
+          <Box
+            component="img"
+            src={resolveMediaUrl(item.imageUrl) ?? undefined}
+            alt={item.name}
+            sx={{ width: '100%', height: '100%', objectFit: 'contain' }}
+          />
+        ) : (
+          <ImageOutlinedIcon sx={{ fontSize: 48 }} />
+        )}
       </Box>
 
       <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>

@@ -11,7 +11,7 @@ import {
   Typography,
 } from '@mui/material'
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined'
-import { ApiError } from '@/lib/apiClient'
+import { ApiError, resolveMediaUrl } from '@/lib/apiClient'
 import * as inventoryApi from '../api/inventoryApi'
 import { ItemStockLocations } from '../components/ItemStockLocations'
 import { TagBadgeList } from '../components/TagBadgeList'
@@ -76,7 +76,16 @@ export function ItemDetailsPage() {
             color: 'text.disabled',
           }}
         >
-          <ImageOutlinedIcon sx={{ fontSize: 64 }} />
+          {item.imageUrl ? (
+            <Box
+              component="img"
+              src={resolveMediaUrl(item.imageUrl) ?? undefined}
+              alt={item.name}
+              sx={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            />
+          ) : (
+            <ImageOutlinedIcon sx={{ fontSize: 64 }} />
+          )}
         </Box>
         <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2 }}>

@@ -15,6 +15,7 @@ export interface Item {
   quantityHs: number
   quantityInUse: number
   quantityAvailable: number
+  imageUrl: string | null
 }
 
 export interface ItemInput {
