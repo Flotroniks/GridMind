@@ -1,4 +1,4 @@
-package org.gridmind.backend
+package org.gridmind.backend.shared.config
 
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
