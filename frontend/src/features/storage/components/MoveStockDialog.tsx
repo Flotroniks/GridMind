@@ -1,6 +1,16 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import {
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  MenuItem,
+  Stack,
+  TextField,
+} from '@mui/material'
 import { useToast } from '@/components/common/useToast'
 import { ApiError } from '@/lib/apiClient'
 import * as storageApi from '../api/storageApi'
@@ -51,73 +61,64 @@ export function MoveStockDialog({ open, fromLocationId, onClose }: MoveStockDial
   })
 
   return (
-    <div className={`modal ${open ? 'modal-open' : ''}`}>
-      <div className="modal-box">
-        <h3 className="mb-4 text-lg font-bold">{t('storage.moveStock')}</h3>
-
-        <div className="flex flex-col gap-4">
-          <label className="fieldset-label flex-col items-stretch gap-2">
-            <span>{t('storage.item')}</span>
-            <select
-              className="select select-bordered w-full"
-              value={itemId}
-              onChange={(event) => setItemId(event.target.value ? Number(event.target.value) : '')}
-            >
-              <option value="">{t('storage.select')}</option>
-              {contents.map((stock) => (
-                <option key={stock.itemId} value={stock.itemId}>
-                  {stock.itemName} ({t('storage.hereCount', { count: stock.quantity })})
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="fieldset-label flex-col items-stretch gap-2">
-            <span>{t('storage.destination')}</span>
-            <select
-              className="select select-bordered w-full"
-              value={toLocationId}
-              onChange={(event) =>
-                setToLocationId(event.target.value ? Number(event.target.value) : '')
-              }
-            >
-              <option value="">{t('storage.select')}</option>
-              {locations
-                .filter((location) => location.id !== fromLocationId)
-                .map((location) => (
-                  <option key={location.id} value={location.id}>
-                    {location.path}
-                  </option>
-                ))}
-            </select>
-          </label>
-
-          <label className="fieldset-label flex-col items-stretch gap-2">
-            <span>{t('storage.quantity')}</span>
-            <input
-              type="number"
-              min="1"
-              className="input input-bordered w-full"
-              value={quantity}
-              onChange={(event) => setQuantity(Number(event.target.value))}
-            />
-          </label>
-        </div>
-
-        <div className="modal-action">
-          <button type="button" className="btn btn-ghost" onClick={onClose}>
-            {t('common.cancel')}
-          </button>
-          <button
-            type="button"
-            className="btn btn-primary"
-            disabled={!itemId || !toLocationId || mutation.isPending}
-            onClick={() => mutation.mutate()}
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>{t('storage.moveStock')}</DialogTitle>
+      <DialogContent>
+        <Stack spacing={2.5} sx={{ mt: 0.5 }}>
+          <TextField
+            select
+            label={t('storage.item')}
+            value={itemId}
+            onChange={(event) => setItemId(event.target.value ? Number(event.target.value) : '')}
+            fullWidth
           >
-            {t('storage.move')}
-          </button>
-        </div>
-      </div>
-    </div>
+            <MenuItem value="">{t('storage.select')}</MenuItem>
+            {contents.map((stock) => (
+              <MenuItem key={stock.itemId} value={stock.itemId}>
+                {stock.itemName} ({t('storage.hereCount', { count: stock.quantity })})
+              </MenuItem>
+            ))}
+          </TextField>
+
+          <TextField
+            select
+            label={t('storage.destination')}
+            value={toLocationId}
+            onChange={(event) =>
+              setToLocationId(event.target.value ? Number(event.target.value) : '')
+            }
+            fullWidth
+          >
+            <MenuItem value="">{t('storage.select')}</MenuItem>
+            {locations
+              .filter((location) => location.id !== fromLocationId)
+              .map((location) => (
+                <MenuItem key={location.id} value={location.id}>
+                  {location.path}
+                </MenuItem>
+              ))}
+          </TextField>
+
+          <TextField
+            label={t('storage.quantity')}
+            type="number"
+            slotProps={{ htmlInput: { min: 1 } }}
+            value={quantity}
+            onChange={(event) => setQuantity(Number(event.target.value))}
+            fullWidth
+          />
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>{t('common.cancel')}</Button>
+        <Button
+          variant="contained"
+          disabled={!itemId || !toLocationId || mutation.isPending}
+          onClick={() => mutation.mutate()}
+        >
+          {t('storage.move')}
+        </Button>
+      </DialogActions>
+    </Dialog>
   )
 }

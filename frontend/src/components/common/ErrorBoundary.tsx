@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
+import { Box, Button, Stack, Typography } from '@mui/material'
 import i18n from '@/i18n/config'
 
 interface ErrorBoundaryProps {
@@ -23,19 +24,25 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex min-h-screen items-center justify-center bg-base-100 p-8">
-          <div className="flex flex-col items-center gap-4 text-center">
-            <h1 className="text-2xl font-bold">{i18n.t('errors.boundaryTitle')}</h1>
-            <p className="text-base-content/70">{i18n.t('errors.boundaryMessage')}</p>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => window.location.reload()}
-            >
+        <Box
+          sx={{
+            minHeight: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            p: 4,
+          }}
+        >
+          <Stack spacing={2} sx={{ alignItems: 'center', textAlign: 'center' }}>
+            <Typography variant="h4" sx={{ fontWeight: 700 }}>
+              {i18n.t('errors.boundaryTitle')}
+            </Typography>
+            <Typography color="text.secondary">{i18n.t('errors.boundaryMessage')}</Typography>
+            <Button variant="contained" onClick={() => window.location.reload()}>
               {i18n.t('errors.reload')}
-            </button>
-          </div>
-        </div>
+            </Button>
+          </Stack>
+        </Box>
       )
     }
 

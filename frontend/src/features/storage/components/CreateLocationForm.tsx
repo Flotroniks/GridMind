@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Button, Stack, TextField } from '@mui/material'
 import { useToast } from '@/components/common/useToast'
 import { ApiError } from '@/lib/apiClient'
 import * as storageApi from '../api/storageApi'
@@ -33,18 +34,18 @@ export function CreateLocationForm({ parentId }: CreateLocationFormProps) {
   }
 
   return (
-    <form className="flex gap-2" onSubmit={handleSubmit}>
-      <input
-        type="text"
-        className="input input-bordered input-sm flex-1"
+    <Stack component="form" direction="row" spacing={1} onSubmit={handleSubmit}>
+      <TextField
+        size="small"
         placeholder="Nouvel emplacement…"
         value={name}
         onChange={(event) => setName(event.target.value)}
         autoComplete="off"
+        fullWidth
       />
-      <button type="submit" className="btn btn-sm btn-primary" disabled={mutation.isPending}>
+      <Button type="submit" variant="contained" disabled={mutation.isPending} sx={{ whiteSpace: 'nowrap' }}>
         Ajouter
-      </button>
-    </form>
+      </Button>
+    </Stack>
   )
 }

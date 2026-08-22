@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { Box, CircularProgress, Stack, Typography } from '@mui/material'
 import * as storageApi from '@/features/storage/api/storageApi'
 
 interface ItemStockLocationsProps {
@@ -12,24 +13,38 @@ export function ItemStockLocations({ itemId }: ItemStockLocationsProps) {
   })
 
   if (isLoading) {
-    return <span className="loading loading-spinner loading-sm" />
+    return <CircularProgress size={16} />
   }
 
   if (stock.length === 0) {
-    return <p className="text-sm text-base-content/60">Cet objet n'est stocké nulle part.</p>
+    return (
+      <Typography variant="body2" color="textSecondary">
+        Cet objet n'est stocké nulle part.
+      </Typography>
+    )
   }
 
   return (
-    <ul className="flex flex-col gap-2">
+    <Stack spacing={1}>
       {stock.map((entry) => (
-        <li
+        <Box
           key={entry.storageLocationId}
-          className="flex items-center justify-between rounded-lg bg-base-100 px-3 py-2"
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderRadius: 2,
+            bgcolor: 'background.default',
+            px: 1.5,
+            py: 1,
+          }}
         >
-          <span>{entry.storageLocationName}</span>
-          <span className="font-bold text-primary">{entry.quantity}</span>
-        </li>
+          <Typography>{entry.storageLocationName}</Typography>
+          <Typography color="primary" sx={{ fontWeight: 700 }}>
+            {entry.quantity}
+          </Typography>
+        </Box>
       ))}
-    </ul>
+    </Stack>
   )
 }
