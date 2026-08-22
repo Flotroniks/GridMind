@@ -46,7 +46,7 @@ org.gridmind.backend
 ## Frontend
 
 - [x] React + TypeScript + Vite working
-- [x] Tailwind + daisyUI installed
+- [x] Material UI (MUI) installed (migrated from Tailwind + daisyUI)
 - [x] Oxlint configured
 - [x] Basic application layout created
 - [x] Frontend can call the backend
@@ -145,7 +145,7 @@ DELETE /api/items/{id}
 - [x] Display loading state
 - [x] Display empty state
 - [x] Display error state
-- [x] Display user feedback (daisyUI toast, not MUI Snackbar)
+- [x] Display user feedback (MUI Snackbar)
 
 ## Tests to add
 
@@ -208,7 +208,7 @@ Do not hardcode categories in an enum if users must be able to create their own.
 - [x] Search inventory
 - [x] Filter by category
 - [x] Filter by manufacturer
-- [x] Display tags (daisyUI badge, not MUI Chip)
+- [x] Display tags (MUI Chip)
 - [x] Item details page
 - [x] Better create/edit form
 
