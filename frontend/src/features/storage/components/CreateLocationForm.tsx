@@ -43,7 +43,12 @@ export function CreateLocationForm({ parentId }: CreateLocationFormProps) {
         autoComplete="off"
         fullWidth
       />
-      <Button type="submit" variant="contained" disabled={mutation.isPending} sx={{ whiteSpace: 'nowrap' }}>
+      <Button
+        type="submit"
+        variant="contained"
+        disabled={mutation.isPending}
+        sx={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+      >
         Ajouter
       </Button>
     </Stack>

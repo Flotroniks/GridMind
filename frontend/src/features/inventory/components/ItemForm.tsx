@@ -150,7 +150,11 @@ export function ItemForm({
           autoComplete="off"
           fullWidth
         />
-        <Button variant="outlined" onClick={() => void handleCreateCategory()} sx={{ whiteSpace: 'nowrap' }}>
+        <Button
+          variant="outlined"
+          onClick={() => void handleCreateCategory()}
+          sx={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+        >
           Ajouter la catégorie
         </Button>
       </Stack>
