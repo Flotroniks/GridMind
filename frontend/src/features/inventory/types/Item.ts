@@ -1,5 +1,3 @@
-export type ItemStatus = 'IN_SERVICE' | 'OUT_OF_SERVICE'
-
 export interface Item {
   id: number
   name: string
@@ -14,7 +12,9 @@ export interface Item {
   productUrl: string | null
   datasheetUrl: string | null
   minimumQuantity: number
-  status: ItemStatus
+  quantityHs: number
+  quantityInUse: number
+  quantityAvailable: number
 }
 
 export interface ItemInput {
@@ -29,12 +29,12 @@ export interface ItemInput {
   productUrl?: string | null
   datasheetUrl?: string | null
   minimumQuantity?: number
-  status?: ItemStatus
+  quantityHs?: number
+  quantityInUse?: number
 }
 
 export interface ItemFilters {
   search?: string
   categoryId?: number
   manufacturer?: string
-  status?: ItemStatus
 }

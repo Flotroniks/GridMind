@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Box, Button, FormControlLabel, MenuItem, Stack, Switch, TextField } from '@mui/material'
+import { Box, Button, MenuItem, Stack, TextField, Typography } from '@mui/material'
 import type { Category } from '@/features/categories/types/Category'
 import type { ItemInput } from '../types/Item'
 
@@ -24,7 +24,8 @@ const emptyForm: ItemInput = {
   productUrl: '',
   datasheetUrl: '',
   minimumQuantity: 0,
-  status: 'IN_SERVICE',
+  quantityHs: 0,
+  quantityInUse: 0,
 }
 
 export function ItemForm({
@@ -102,6 +103,28 @@ export function ItemForm({
         />
 
         <TextField
+          label="Quantité HS"
+          type="number"
+          slotProps={{ htmlInput: { min: 0 } }}
+          value={form.quantityHs ?? 0}
+          onChange={(event) =>
+            setForm((current) => ({ ...current, quantityHs: Number(event.target.value) }))
+          }
+          fullWidth
+        />
+
+        <TextField
+          label="Quantité en utilisation"
+          type="number"
+          slotProps={{ htmlInput: { min: 0 } }}
+          value={form.quantityInUse ?? 0}
+          onChange={(event) =>
+            setForm((current) => ({ ...current, quantityInUse: Number(event.target.value) }))
+          }
+          fullWidth
+        />
+
+        <TextField
           label="Fabricant"
           value={form.manufacturer ?? ''}
           onChange={(event) =>
@@ -142,22 +165,10 @@ export function ItemForm({
         </TextField>
       </Box>
 
-      <FormControlLabel
-        control={
-          <Switch
-            checked={form.status === 'OUT_OF_SERVICE'}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                status: event.target.checked ? 'OUT_OF_SERVICE' : 'IN_SERVICE',
-              }))
-            }
-            color="error"
-          />
-        }
-        label="Objet hors service (HS)"
-        sx={{ width: 'fit-content' }}
-      />
+      <Typography variant="body2" color="textSecondary">
+        {Math.max(0, form.quantity - (form.quantityHs ?? 0) - (form.quantityInUse ?? 0))} prêt(s) à
+        utiliser sur {form.quantity}
+      </Typography>
 
       <Stack direction="row" spacing={1}>
         <TextField

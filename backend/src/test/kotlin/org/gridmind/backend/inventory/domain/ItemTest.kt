@@ -34,9 +34,36 @@ class ItemTest {
     }
 
     @Test
-    fun `item defaults to in service status`() {
-        val item = Item(name = "Wire", quantity = 1)
+    fun `item hs quantity must be zero or positive`() {
+        val exception = assertThrows<IllegalArgumentException> {
+            Item(name = "Resistor", quantity = 1, quantityHs = -1)
+        }
 
-        assertEquals(ItemStatus.IN_SERVICE, item.status)
+        assertEquals("Item HS quantity must be greater than or equal to 0.", exception.message)
+    }
+
+    @Test
+    fun `item in-use quantity must be zero or positive`() {
+        val exception = assertThrows<IllegalArgumentException> {
+            Item(name = "Resistor", quantity = 1, quantityInUse = -1)
+        }
+
+        assertEquals("Item in-use quantity must be greater than or equal to 0.", exception.message)
+    }
+
+    @Test
+    fun `item hs and in-use quantities must not exceed total quantity`() {
+        val exception = assertThrows<IllegalArgumentException> {
+            Item(name = "ESP32-S3", quantity = 5, quantityHs = 3, quantityInUse = 3)
+        }
+
+        assertEquals("Item HS and in-use quantities must not exceed total quantity.", exception.message)
+    }
+
+    @Test
+    fun `item computes available quantity`() {
+        val item = Item(name = "ESP32-S3", quantity = 5, quantityHs = 1, quantityInUse = 2)
+
+        assertEquals(2, item.quantityAvailable)
     }
 }

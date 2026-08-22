@@ -11,14 +11,10 @@ interface ItemRowProps {
 }
 
 export function ItemRow({ item, onEditRequest, onDeleteRequest }: ItemRowProps) {
-  const isLowStock = item.quantity <= item.minimumQuantity
-  const isOutOfService = item.status === 'OUT_OF_SERVICE'
+  const isLowStock = item.quantityAvailable <= item.minimumQuantity
 
   return (
-    <Card
-      component="li"
-      sx={{ listStyle: 'none', overflow: 'hidden', opacity: isOutOfService ? 0.7 : 1 }}
-    >
+    <Card component="li" sx={{ listStyle: 'none', overflow: 'hidden' }}>
       <Box
         component={Link}
         to={`/inventory/${item.id}`}
@@ -55,22 +51,33 @@ export function ItemRow({ item, onEditRequest, onDeleteRequest }: ItemRowProps) 
             variant="h4"
             sx={{ fontWeight: 700, color: isLowStock ? 'error.main' : 'primary.main' }}
           >
-            {item.quantity}
+            {item.quantityAvailable}
           </Typography>
         </Box>
 
-        <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap' }}>
-          {isOutOfService && <Chip label="Hors service" size="small" color="error" />}
-          {item.categoryName && (
-            <Chip label={item.categoryName} size="small" color="primary" variant="outlined" />
-          )}
-        </Stack>
+        {item.categoryName && (
+          <Chip
+            label={item.categoryName}
+            size="small"
+            color="primary"
+            variant="outlined"
+            sx={{ width: 'fit-content' }}
+          />
+        )}
 
         <TagBadgeList tags={item.tags} />
 
+        {(item.quantityInUse > 0 || item.quantityHs > 0) && (
+          <Typography variant="caption" color="textSecondary">
+            {item.quantity} au total
+            {item.quantityInUse > 0 ? ` · ${item.quantityInUse} en utilisation` : ''}
+            {item.quantityHs > 0 ? ` · ${item.quantityHs} HS` : ''}
+          </Typography>
+        )}
+
         {isLowStock && (
           <Typography variant="caption" color="error">
-            Stock sous le seuil minimal ({item.minimumQuantity})
+            Stock disponible sous le seuil minimal ({item.minimumQuantity})
           </Typography>
         )}
 

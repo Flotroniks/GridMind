@@ -6,7 +6,6 @@ import jakarta.validation.constraints.NotBlank
 import org.gridmind.backend.category.application.CategoryService
 import org.gridmind.backend.inventory.application.InventoryService
 import org.gridmind.backend.inventory.domain.Item
-import org.gridmind.backend.inventory.domain.ItemStatus
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
@@ -30,10 +29,9 @@ class ItemController(
         @RequestParam(required = false) search: String?,
         @RequestParam(required = false) categoryId: Long?,
         @RequestParam(required = false) manufacturer: String?,
-        @RequestParam(required = false) status: ItemStatus?,
     ): List<ItemResponse> {
         val categoryNames = categoryNamesById()
-        return inventoryService.search(search, categoryId, manufacturer, status)
+        return inventoryService.search(search, categoryId, manufacturer)
             .map { ItemResponse.from(it, categoryNames[it.categoryId]) }
     }
 
@@ -88,7 +86,11 @@ data class ItemRequest(
     @field:Min(value = 0, message = "Minimum quantity must be zero or positive")
     val minimumQuantity: Int = 0,
 
-    val status: ItemStatus = ItemStatus.IN_SERVICE,
+    @field:Min(value = 0, message = "HS quantity must be zero or positive")
+    val quantityHs: Int = 0,
+
+    @field:Min(value = 0, message = "In-use quantity must be zero or positive")
+    val quantityInUse: Int = 0,
 ) {
     fun toItem(): Item = Item(
         name = name,
@@ -102,7 +104,8 @@ data class ItemRequest(
         productUrl = productUrl,
         datasheetUrl = datasheetUrl,
         minimumQuantity = minimumQuantity,
-        status = status,
+        quantityHs = quantityHs,
+        quantityInUse = quantityInUse,
     )
 }
 
@@ -120,7 +123,9 @@ data class ItemResponse(
     val productUrl: String?,
     val datasheetUrl: String?,
     val minimumQuantity: Int,
-    val status: ItemStatus,
+    val quantityHs: Int,
+    val quantityInUse: Int,
+    val quantityAvailable: Int,
 ) {
     companion object {
         fun from(item: Item, categoryName: String? = null): ItemResponse = ItemResponse(
@@ -137,7 +142,9 @@ data class ItemResponse(
             productUrl = item.productUrl,
             datasheetUrl = item.datasheetUrl,
             minimumQuantity = item.minimumQuantity,
-            status = item.status,
+            quantityHs = item.quantityHs,
+            quantityInUse = item.quantityInUse,
+            quantityAvailable = item.quantityAvailable,
         )
     }
 }

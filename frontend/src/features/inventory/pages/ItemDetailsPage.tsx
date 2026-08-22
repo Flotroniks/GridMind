@@ -92,18 +92,60 @@ export function ItemDetailsPage() {
               )}
             </Box>
             <Typography variant="h4" color="primary" sx={{ fontWeight: 700 }}>
-              {item.quantity}
+              {item.quantityAvailable}
             </Typography>
           </Box>
 
-          <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap' }}>
-            {item.status === 'OUT_OF_SERVICE' && <Chip label="Hors service" size="small" color="error" />}
-            {item.categoryName && (
-              <Chip label={item.categoryName} size="small" color="primary" variant="outlined" />
-            )}
-          </Stack>
+          {item.categoryName && (
+            <Chip
+              label={item.categoryName}
+              size="small"
+              color="primary"
+              variant="outlined"
+              sx={{ width: 'fit-content' }}
+            />
+          )}
 
           <TagBadgeList tags={item.tags} />
+
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: 1.5,
+              p: 1.5,
+              borderRadius: 2,
+              bgcolor: 'background.default',
+            }}
+          >
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                {item.quantityAvailable}
+              </Typography>
+              <Typography variant="caption" color="textSecondary">
+                Prêt à utiliser
+              </Typography>
+            </Box>
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                {item.quantityInUse}
+              </Typography>
+              <Typography variant="caption" color="textSecondary">
+                En utilisation
+              </Typography>
+            </Box>
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography variant="h6" color="error" sx={{ fontWeight: 700 }}>
+                {item.quantityHs}
+              </Typography>
+              <Typography variant="caption" color="textSecondary">
+                HS
+              </Typography>
+            </Box>
+          </Box>
+          <Typography variant="caption" color="textSecondary" sx={{ textAlign: 'center' }}>
+            {item.quantity} au total
+          </Typography>
 
           {item.description && <Typography color="textSecondary">{item.description}</Typography>}
 
