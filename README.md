@@ -6,7 +6,7 @@ GridMind is a smart inventory and workshop management application for makers —
 
 - **Backend**: Kotlin, Spring Boot, PostgreSQL, Flyway migrations
 - **Frontend**: React, TypeScript, Vite, Material UI (MUI), TanStack Query, react-i18next
-- **Local AI**: [Ollama](https://ollama.com) (CPU-only, no GPU required) for the experimental image-analysis prototype — see [Local AI / Image analysis](#local-ai--image-analysis)
+- **Local AI**: [Ollama](https://ollama.com) (CPU by default, no GPU required — optional GPU acceleration available) for the experimental image-analysis prototype — see [Local AI / Image analysis](#local-ai--image-analysis)
 - **Dev environment**: Docker Compose (Postgres, backend, frontend, Ollama, all with live reload)
 
 ## Prerequisites
@@ -259,16 +259,28 @@ Chosen from what's currently available in Ollama's library of compact vision mod
 
 `qwen2.5vl:3b` was picked as the best compromise for this hardware and this exact task; see [Limitations](#limitations) below for how that plays out in practice.
 
-### Resources — CPU-only, no GPU assumed
+### Resources — CPU-only by default, no GPU assumed
 
-- No GPU configuration is used anywhere (no `deploy.reservations.devices`, no CUDA/ROCm image variant) — the `ollama/ollama` image runs CPU-only automatically when no GPU is passed through, so this works unmodified on a Ryzen 5 PRO 4650GE VM with no dedicated GPU.
-- No hard memory/CPU limit is set on the `ollama` service in `compose.yaml` — consistent with every other service in this stack, none of which are resource-constrained either. A loaded `qwen2.5vl:3b` uses on the order of a few GB of RAM while active; with ~82GB available on the target host, this is not a meaningful pressure point for a single-user prototype used for occasional analyses.
-- Ollama unloads a model from memory automatically 5 minutes after its last use (its default `keep_alive` behavior) — so RAM usage for this feature is transient, not a standing reservation, even though nothing here configures that explicitly.
+- The base `compose.yaml` uses no GPU configuration at all (no `deploy.reservations.devices`, no CUDA/ROCm image variant) — the `ollama/ollama` image runs CPU-only automatically when no GPU is passed through, so this works unmodified on a Ryzen 5 PRO 4650GE VM with no dedicated GPU. This is deliberate and stays the default: the deployment target has no *guaranteed* GPU, so the app must not require one.
+- No hard memory/CPU limit is set on the `ollama` service — consistent with every other service in this stack, none of which are resource-constrained either. A loaded `qwen2.5vl:3b` uses on the order of a few GB of RAM (CPU) or VRAM (GPU) while active; with ~82GB available on the target host, this is not a meaningful pressure point for a single-user prototype used for occasional analyses.
+- Ollama unloads a model from memory automatically 5 minutes after its last use (its default `keep_alive` behavior) — so RAM/VRAM usage for this feature is transient, not a standing reservation, even though nothing here configures that explicitly.
 - **Recommended starting point for the target Ryzen 5 PRO 4650GE VM**: 4 vCPU / 8GB RAM dedicated to the container running Ollama is comfortable for `qwen2.5vl:3b` CPU inference; the full 6c/12t host has plenty of headroom beyond that for the rest of the stack.
+- **Optional GPU acceleration** — if the machine running GridMind *does* have a dedicated NVIDIA GPU (a dev machine, most likely — not the CPU-only Proxmox target), `compose.gpu.yaml` layers a GPU reservation onto the `ollama` service without touching the base file:
+  ```bash
+  docker compose -f compose.yaml -f compose.gpu.yaml up -d
+  ```
+  Requires the NVIDIA driver and Docker's GPU support on the host (Docker Desktop's WSL2 backend already has this if `docker run --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi` succeeds). Ollama detects and uses the GPU automatically inside the container — nothing else to configure, no code changes, same model. Not part of the default `up` command specifically so the CPU-only path — the one that has to work on the real target — stays what everyone gets without extra steps.
 
-### CPU-only inference — expect it to be slow
+### Inference speed — CPU by default, dramatically faster with the optional GPU
 
-There is no GPU acceleration here. Measured directly (real photos, real model, this exact Docker setup, dev-machine CPU): a warm analysis typically completes in **5-10 seconds**. That is not a target or a guarantee — it will vary with image complexity and host load, and the read timeout defaults to a generous 150s (`OLLAMA_TIMEOUT`, see below) to leave headroom for slower cases. This is an accepted, deliberate trade-off for a prototype used for occasional, one-off analyses.
+There is no GPU acceleration unless `compose.gpu.yaml` is layered on (see above). Measured directly, real photos, real model, this exact Docker setup:
+
+| | Cold (model load) | Warm |
+| --- | --- | --- |
+| CPU (dev-machine Ryzen, no GPU override) | ~1-2 min | **5-10 seconds** |
+| GPU (dev-machine RTX 3070, `compose.gpu.yaml`) | ~1 min (one-time, loading weights into VRAM) | **under 1-2 seconds** |
+
+Neither number is a guarantee — image complexity and host load both matter — but the relative gap (CPU warm analyses taking several seconds vs. GPU warm analyses completing in about a second) is real and reproducible, not a rounding error. The read timeout defaults to a generous 150s (`OLLAMA_TIMEOUT`, see below) specifically to give the CPU path headroom for slower cases; a GPU host has no trouble staying well under that. This is an accepted, deliberate CPU-first trade-off for a prototype used for occasional, one-off analyses on hardware that isn't guaranteed a GPU — GPU acceleration is a bonus where available, not a requirement anywhere in the code.
 
 One specific failure mode is worth calling out because it was actually hit during testing: without a cap on output length, Ollama's schema-constrained decoding on this model occasionally fell into a repetition loop and never emitted the closing brace of the JSON — one test run generated 4,000+ tokens over several minutes before being cut off, instead of the well under 1,000 tokens the schema actually needs. `OllamaApiClient` now sets `num_predict` (a hard cap) and a raised `repeat_penalty` specifically to bound and reduce this — see [Limitations](#limitations) for what's still observed even with that mitigation in place.
 
@@ -278,6 +290,8 @@ One specific failure mode is worth calling out because it was actually hit durin
 docker compose up -d
 docker compose exec ollama ollama pull qwen2.5vl:3b
 ```
+
+Add `-f compose.gpu.yaml` to the first command (see [Resources](#resources--cpu-only-by-default-no-gpu-assumed) above) on a machine with a dedicated NVIDIA GPU — the model only needs pulling once either way, since both paths share the same `ollama_data` volume.
 
 The first command starts (among everything else) the `ollama` service; the second downloads the model into its persistent volume — a one-time step per volume (`docker compose down -v` would remove it and require re-pulling). There is no way to make Docker Compose pull an Ollama model on its own as part of `up`, so this second command is a required manual step, documented here exactly as run.
 

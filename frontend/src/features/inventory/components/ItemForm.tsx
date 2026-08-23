@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'
 import UploadFileIcon from '@mui/icons-material/UploadFile'
-import { Alert, Box, Button, CircularProgress, MenuItem, Stack, TextField, Typography } from '@mui/material'
+import { Alert, Box, Button, CircularProgress, MenuItem, Skeleton, Stack, TextField, Typography } from '@mui/material'
 import type { Category } from '@/features/categories/types/Category'
 import * as imageAnalysisApi from '@/features/imageanalysis/api/imageAnalysisApi'
 import { toItemInput as imageAnalysisToItemInput } from '@/features/imageanalysis/utils/toItemInput'
@@ -42,6 +42,13 @@ const emptyForm: ItemInput = {
 
 function preferFilled(mapped: string | null | undefined, current: string | null | undefined): string | null | undefined {
   return mapped && mapped.trim() ? mapped : current
+}
+
+/** A field-shaped placeholder shown in place of a `TextField` while AI analysis is
+ * filling it in — the same "shimmering block where text is about to appear" pattern
+ * video sites use for loading content, applied to just the fields the analysis touches. */
+function FieldSkeleton({ height = 56 }: { height?: number }) {
+  return <Skeleton variant="rounded" height={height} sx={{ width: '100%', borderRadius: 1 }} />
 }
 
 export function ItemForm({
@@ -209,14 +216,18 @@ export function ItemForm({
       )}
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2.5 }}>
-        <TextField
-          label="Nom"
-          value={form.name}
-          onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-          placeholder="Ex. ESP32-S3"
-          autoComplete="off"
-          fullWidth
-        />
+        {analyzingPhoto ? (
+          <FieldSkeleton />
+        ) : (
+          <TextField
+            label="Nom"
+            value={form.name}
+            onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+            placeholder="Ex. ESP32-S3"
+            autoComplete="off"
+            fullWidth
+          />
+        )}
 
         <TextField
           label="Quantité"
@@ -262,25 +273,33 @@ export function ItemForm({
           fullWidth
         />
 
-        <TextField
-          label="Fabricant"
-          value={form.manufacturer ?? ''}
-          onChange={(event) =>
-            setForm((current) => ({ ...current, manufacturer: event.target.value }))
-          }
-          autoComplete="off"
-          fullWidth
-        />
+        {analyzingPhoto ? (
+          <FieldSkeleton />
+        ) : (
+          <TextField
+            label="Fabricant"
+            value={form.manufacturer ?? ''}
+            onChange={(event) =>
+              setForm((current) => ({ ...current, manufacturer: event.target.value }))
+            }
+            autoComplete="off"
+            fullWidth
+          />
+        )}
 
-        <TextField
-          label="Référence"
-          value={form.reference ?? ''}
-          onChange={(event) =>
-            setForm((current) => ({ ...current, reference: event.target.value }))
-          }
-          autoComplete="off"
-          fullWidth
-        />
+        {analyzingPhoto ? (
+          <FieldSkeleton />
+        ) : (
+          <TextField
+            label="Référence"
+            value={form.reference ?? ''}
+            onChange={(event) =>
+              setForm((current) => ({ ...current, reference: event.target.value }))
+            }
+            autoComplete="off"
+            fullWidth
+          />
+        )}
 
         <TextField
           select
@@ -336,25 +355,33 @@ export function ItemForm({
         fullWidth
       />
 
-      <TextField
-        label="Description"
-        value={form.description ?? ''}
-        onChange={(event) =>
-          setForm((current) => ({ ...current, description: event.target.value }))
-        }
-        multiline
-        rows={2}
-        fullWidth
-      />
+      {analyzingPhoto ? (
+        <FieldSkeleton height={80} />
+      ) : (
+        <TextField
+          label="Description"
+          value={form.description ?? ''}
+          onChange={(event) =>
+            setForm((current) => ({ ...current, description: event.target.value }))
+          }
+          multiline
+          rows={2}
+          fullWidth
+        />
+      )}
 
-      <TextField
-        label="Notes"
-        value={form.notes ?? ''}
-        onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
-        multiline
-        rows={2}
-        fullWidth
-      />
+      {analyzingPhoto ? (
+        <FieldSkeleton height={80} />
+      ) : (
+        <TextField
+          label="Notes"
+          value={form.notes ?? ''}
+          onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
+          multiline
+          rows={2}
+          fullWidth
+        />
+      )}
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2.5 }}>
         <TextField
