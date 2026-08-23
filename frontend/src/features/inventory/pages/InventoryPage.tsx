@@ -4,7 +4,7 @@ import { useToast } from '@/components/common/useToast'
 import * as categoryApi from '@/features/categories/api/categoryApi'
 import type { Category } from '@/features/categories/types/Category'
 import { ProductSearchModal } from '@/features/catalog/components/ProductSearchModal'
-import type { CatalogImageSource } from '@/features/catalog/components/CatalogConfirmStep'
+import type { CatalogImageSource } from '@/features/inventory/components/PrefilledItemConfirmStep'
 import { ApiError } from '@/lib/apiClient'
 import * as inventoryApi from '../api/inventoryApi'
 import { DeleteItemDialog } from '../components/DeleteItemDialog'
@@ -157,10 +157,7 @@ export function InventoryPage() {
             </Box>
             <Stack direction="row" spacing={1}>
               <Button variant="contained" onClick={() => setSearchingCatalog(true)}>
-                Rechercher un produit
-              </Button>
-              <Button variant="outlined" onClick={() => setCreating(true)}>
-                Ajouter manuellement
+                Ajouter un objet
               </Button>
             </Stack>
           </Stack>
@@ -186,7 +183,7 @@ export function InventoryPage() {
               onEditRequest={setEditingItem}
               onDeleteRequest={setItemPendingDelete}
               hasActiveFilters={Boolean(filters.search || filters.categoryId || filters.manufacturer)}
-              onCreateRequest={() => setCreating(true)}
+              onCreateRequest={() => setSearchingCatalog(true)}
             />
           )}
         </CardContent>

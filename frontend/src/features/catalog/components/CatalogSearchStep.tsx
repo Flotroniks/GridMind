@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import AddIcon from '@mui/icons-material/Add'
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined'
 import SearchIcon from '@mui/icons-material/Search'
 import {
@@ -20,13 +21,14 @@ import type { CatalogResult } from '../types/CatalogResult'
 interface CatalogSearchStepProps {
   onSelect: (result: CatalogResult) => void
   onManualCreateRequest: (query: string) => void
+  onAnalyzePhotoRequest: () => void
 }
 
 function messageOf(error: unknown, fallback: string): string {
   return error instanceof ApiError || error instanceof Error ? error.message : fallback
 }
 
-export function CatalogSearchStep({ onSelect, onManualCreateRequest }: CatalogSearchStepProps) {
+export function CatalogSearchStep({ onSelect, onManualCreateRequest, onAnalyzePhotoRequest }: CatalogSearchStepProps) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<CatalogResult[]>([])
   const [loading, setLoading] = useState(false)
@@ -110,9 +112,14 @@ export function CatalogSearchStep({ onSelect, onManualCreateRequest }: CatalogSe
           }}
         >
           <Typography color="textSecondary">Aucun résultat pour « {query.trim()} ».</Typography>
-          <Button variant="outlined" startIcon={<AddIcon />} onClick={() => onManualCreateRequest(query.trim())}>
-            Créer manuellement
-          </Button>
+          <Stack direction="row" spacing={1.5} sx={{ flexWrap: 'wrap', justifyContent: 'center' }}>
+            <Button variant="outlined" startIcon={<AddIcon />} onClick={() => onManualCreateRequest(query.trim())}>
+              Tout faire manuellement
+            </Button>
+            <Button variant="outlined" startIcon={<AutoAwesomeIcon />} onClick={onAnalyzePhotoRequest}>
+              Analyser une photo (IA)
+            </Button>
+          </Stack>
         </Box>
       )}
 

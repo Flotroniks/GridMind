@@ -2,17 +2,31 @@ import { useState } from 'react'
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined'
 import { Box, Button, Chip, Divider, Stack, Typography } from '@mui/material'
 import type { Category } from '@/features/categories/types/Category'
-import { ItemForm } from '@/features/inventory/components/ItemForm'
-import type { ItemInput } from '@/features/inventory/types/Item'
-import type { CatalogImage, CatalogResult } from '../types/CatalogResult'
+import type { ItemInput } from '../types/Item'
+import { ItemForm } from './ItemForm'
 
 export interface CatalogImageSource {
   url: string
   provider: string
 }
 
-interface CatalogConfirmStepProps {
-  result: CatalogResult
+export interface PrefillImageOption {
+  url: string
+  provider: string
+}
+
+interface PrefilledItemConfirmStepProps {
+  /** Already-mapped starting values for the form — the caller decides how its own
+   * source (a catalog result, an image analysis) becomes an `ItemInput`. */
+  initialInput: ItemInput
+  /** A category name to try to match/offer, from whatever source suggested one. */
+  suggestedCategoryName: string | null
+  /** Selectable image candidates with a real, persistable URL (catalog providers only —
+   * empty for a locally analyzed photo, which has no such URL). */
+  images: PrefillImageOption[]
+  /** A local, non-persistable preview to show for context (e.g. the photo that was just
+   * analyzed) when there's nothing in `images` to pick from. Display-only. */
+  previewImageUrl?: string | null
   categories: Category[]
   onCreateCategory: (name: string) => Promise<Category>
   onCancel: () => void
@@ -25,36 +39,30 @@ function findMatchingCategoryId(categoryName: string | null, categories: Categor
   return categories.find((category) => category.name.toLowerCase() === normalized)?.id ?? null
 }
 
-function toItemInput(result: CatalogResult, categoryId: number | null): ItemInput {
-  return {
-    name: result.name,
-    quantity: 1,
-    manufacturer: result.manufacturer,
-    reference: result.mpn,
-    description: result.description,
-    datasheetUrl: result.datasheetUrl,
-    categoryId,
-  }
-}
-
-export function CatalogConfirmStep({
-  result,
+export function PrefilledItemConfirmStep({
+  initialInput,
+  suggestedCategoryName,
+  images,
+  previewImageUrl = null,
   categories,
   onCreateCategory,
   onCancel,
   onSubmit,
-}: CatalogConfirmStepProps) {
-  const [selectedImage, setSelectedImage] = useState<CatalogImage | null>(result.images[0] ?? null)
+}: PrefilledItemConfirmStepProps) {
+  const [selectedImage, setSelectedImage] = useState<PrefillImageOption | null>(images[0] ?? null)
   const [matchedCategoryId, setMatchedCategoryId] = useState<number | null>(() =>
-    findMatchingCategoryId(result.category, categories),
+    findMatchingCategoryId(suggestedCategoryName, categories),
   )
-  const [formValue, setFormValue] = useState<ItemInput>(() => toItemInput(result, matchedCategoryId))
+  const [formValue, setFormValue] = useState<ItemInput>(() => ({
+    ...initialInput,
+    categoryId: findMatchingCategoryId(suggestedCategoryName, categories),
+  }))
   const [step, setStep] = useState<'form' | 'review'>('form')
   const [confirming, setConfirming] = useState(false)
 
   const handleCreateSuggestedCategory = async () => {
-    if (!result.category) return
-    const category = await onCreateCategory(result.category)
+    if (!suggestedCategoryName) return
+    const category = await onCreateCategory(suggestedCategoryName)
     setMatchedCategoryId(category.id)
     setFormValue((current) => ({ ...current, categoryId: category.id }))
   }
@@ -70,6 +78,8 @@ export function CatalogConfirmStep({
       setConfirming(false)
     }
   }
+
+  const previewSrc = selectedImage?.url ?? previewImageUrl
 
   if (step === 'review') {
     const categoryName = categories.find((category) => category.id === formValue.categoryId)?.name ?? null
@@ -95,10 +105,10 @@ export function CatalogConfirmStep({
               flexShrink: 0,
             }}
           >
-            {selectedImage ? (
+            {previewSrc ? (
               <Box
                 component="img"
-                src={selectedImage.url}
+                src={previewSrc}
                 alt={formValue.name}
                 sx={{ width: '100%', height: '100%', objectFit: 'contain' }}
               />
@@ -156,14 +166,14 @@ export function CatalogConfirmStep({
 
   return (
     <Stack spacing={2.5}>
-      {result.category && (
+      {suggestedCategoryName && (
         <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
           <Typography variant="body2" color="textSecondary">
             {matchedCategoryId
-              ? 'Catégorie du catalogue (déjà sélectionnée ci-dessous) :'
-              : 'Catégorie suggérée par le catalogue :'}
+              ? 'Catégorie suggérée (déjà sélectionnée ci-dessous) :'
+              : 'Catégorie suggérée :'}
           </Typography>
-          <Chip component="span" label={result.category} size="small" variant="outlined" />
+          <Chip component="span" label={suggestedCategoryName} size="small" variant="outlined" />
           {!matchedCategoryId && (
             <Button size="small" onClick={() => void handleCreateSuggestedCategory()}>
               Créer et utiliser
@@ -172,13 +182,13 @@ export function CatalogConfirmStep({
         </Stack>
       )}
 
-      {result.images.length > 0 && (
+      {images.length > 0 && (
         <Box>
           <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
             Image
           </Typography>
           <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
-            {result.images.map((image) => {
+            {images.map((image) => {
               const isSelected = selectedImage?.url === image.url
               return (
                 <Box
@@ -233,6 +243,33 @@ export function CatalogConfirmStep({
               <ImageOutlinedIcon />
             </Box>
           </Stack>
+        </Box>
+      )}
+
+      {images.length === 0 && previewImageUrl && (
+        <Box>
+          <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+            Photo analysée (non enregistrée dans l'objet)
+          </Typography>
+          <Box
+            sx={{
+              width: 84,
+              height: 84,
+              borderRadius: 1.5,
+              overflow: 'hidden',
+              bgcolor: 'background.default',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Box
+              component="img"
+              src={previewImageUrl}
+              alt="Photo analysée"
+              sx={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            />
+          </Box>
         </Box>
       )}
 
