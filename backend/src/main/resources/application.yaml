@@ -17,6 +17,12 @@ spring:
   flyway:
     enabled: true
     baseline-on-migrate: true
+  servlet:
+    multipart:
+      # Matches UploadedImageValidator's own cap — Spring rejects an oversized upload
+      # before it ever reaches application code.
+      max-file-size: 10MB
+      max-request-size: 10MB
 
 server:
   port: 8080
@@ -53,6 +59,15 @@ gridmind:
       # Which eBay marketplace to search — affects currency, language and which listings
       # show up. See .env.example for how to pick a different one.
       marketplace-id: ${EBAY_MARKETPLACE_ID:EBAY_US}
+  imageanalysis:
+    ollama:
+      # "ollama" resolves via the Docker Compose network (see compose.yaml) — not
+      # reachable like this outside of `docker compose up`.
+      base-url: ${OLLAMA_BASE_URL:http://ollama:11434}
+      model: ${OLLAMA_VISION_MODEL:qwen2.5vl:3b}
+      # CPU inference on a multimodal model is slow by nature — generous on purpose, see
+      # the README's "Local AI / Image analysis" section.
+      timeout: ${OLLAMA_TIMEOUT:150s}
 
 logging:
   level:

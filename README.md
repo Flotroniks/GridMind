@@ -6,7 +6,8 @@ GridMind is a smart inventory and workshop management application for makers —
 
 - **Backend**: Kotlin, Spring Boot, PostgreSQL, Flyway migrations
 - **Frontend**: React, TypeScript, Vite, Material UI (MUI), TanStack Query, react-i18next
-- **Dev environment**: Docker Compose (Postgres, backend, frontend, all with live reload)
+- **Local AI**: [Ollama](https://ollama.com) (CPU-only, no GPU required) for the experimental image-analysis prototype — see [Local AI / Image analysis](#local-ai--image-analysis)
+- **Dev environment**: Docker Compose (Postgres, backend, frontend, Ollama, all with live reload)
 
 ## Prerequisites
 
@@ -28,6 +29,11 @@ GridMind is a smart inventory and workshop management application for makers —
 3. Open the app at http://localhost:5173
 
 The backend runs on http://localhost:8080 and reloads on code changes; the frontend dev server does the same.
+
+To try the experimental image-analysis prototype, also pull the vision model once Ollama is up (see [Local AI / Image analysis](#local-ai--image-analysis) for details):
+```bash
+docker compose exec ollama ollama pull qwen2.5vl:3b
+```
 
 ## Quick start (without Docker)
 
@@ -64,6 +70,7 @@ The backend runs on http://localhost:8080 and reloads on code changes; the front
 - **Storage**: hierarchical storage locations (e.g. Workshop → Drawer → Bin), with an item's stock spread across multiple locations and moved between them atomically
 - **Product search**: look up a part by name or MPN across external catalogs (DigiKey, Mouser) instead of typing everything by hand — see [Product catalog providers](#product-catalog-providers)
 - **Local image storage**: an image picked during product search is downloaded once and kept on disk, independent of the provider or an internet connection
+- **Image analysis (experimental)**: photograph a part and get a best-effort identification from a local vision model — a standalone prototype, not yet wired into inventory creation — see [Local AI / Image analysis](#local-ai--image-analysis)
 
 ## Backend API
 
@@ -73,16 +80,18 @@ The backend runs on http://localhost:8080 and reloads on code changes; the front
 - `GET /api/storage/items/{itemId}/stock`, `POST /api/storage/stock/allocate`, `POST /api/storage/stock/move` — stock allocation and movement
 - `GET /api/catalog/search?query=` — search configured product catalog providers, grouped and normalized (see below)
 - `GET /api/media/{id}` — serves a locally stored image by id
+- `POST /api/image-analysis/analyze` — multipart image upload, analyzed locally via Ollama (see [Local AI / Image analysis](#local-ai--image-analysis))
 
 ## Project structure
 
 ```text
 backend/src/main/kotlin/org/gridmind/backend/
-├── inventory/    # items: domain, application, api, persistence (incl. local image storage)
-├── category/     # categories
-├── storage/      # storage locations and stock allocation
-├── catalog/      # external product search: domain, application, api, provider adapters
-└── shared/       # cross-cutting config and error handling
+├── inventory/       # items: domain, application, api, persistence (incl. local image storage)
+├── category/        # categories
+├── storage/         # storage locations and stock allocation
+├── catalog/         # external product search: domain, application, api, provider adapters
+├── imageanalysis/    # local image analysis prototype: domain, application, api, Ollama adapter
+└── shared/           # cross-cutting config and error handling
 
 backend/src/main/resources/db/migration/   # Flyway migrations
 
@@ -92,7 +101,8 @@ frontend/src/
 │   ├── inventory/
 │   ├── categories/
 │   ├── storage/
-│   └── catalog/         # product search UI (search step + confirmation step)
+│   ├── catalog/         # product search UI (search step + confirmation step)
+│   └── imageanalysis/   # image-analysis prototype UI
 ├── components/common/   # shared UI (toasts, theme toggle, language switcher, error boundary)
 ├── layouts/
 └── theme/               # MUI theme + light/dark color mode
@@ -222,6 +232,91 @@ GridMind is a modular monolith, not a full hexagonal/clean-architecture rewrite:
 - **`ProductCatalogProvider` is a port in `catalog/application/`, not `catalog/infrastructure/`.** It's the seam the catalog feature depends on to reach the outside world (DigiKey, Mouser, Adafruit, the in-memory fake), so it belongs with the use case that depends on it (`ProductSearchService`), not with the adapters that implement it. This mirrors the existing `ImageDownloader` port in `inventory/application/` (implemented by `RestClientImageDownloader` in `inventory/infrastructure/media/`) — one consistent pattern for "external dependency behind a port," applied to both features rather than invented twice.
 - **`CatalogResult.mpn` is `String?`, not `String`.** The initial model made MPN mandatory, which is true for DigiKey/Mouser-style distributor data but not for maker hardware (dev boards, breakout boards, common sensor modules), which often has no real MPN at all. Rather than inventing a placeholder value, the model allows `null` and `ProductGrouper` treats it as "no merge key" — see [Provider selection](#provider-selection).
 - **Adafruit's adapter fetches and caches a full catalog instead of calling a search endpoint per query**, because Adafruit's Products API doesn't have one — it only exposes a full-list dump. Rather than distorting `ProductCatalogProvider`'s contract (still just `search(query): List<CatalogResult>`) to accommodate this, the difference is absorbed entirely inside `AdafruitApiClient` (fetch-and-cache) and `AdafruitProductCatalogProvider` (in-memory filter); nothing above the adapter needs to know Adafruit works differently from DigiKey or Mouser.
+
+## Local AI / Image analysis
+
+**Experimental prototype.** Photograph a maker/electronics part, get a best-effort structured identification from a vision model running entirely locally via [Ollama](https://ollama.com) — no cloud API, no external service. This is deliberately a standalone evaluation: upload → local analysis → result displayed. It is **not** wired into DigiKey/Mouser/Adafruit/eBay, does not create inventory items, and does not persist the image anywhere — it exists purely to evaluate recognition quality on real hardware before deciding whether (and how) to build on it.
+
+### Role of Ollama
+
+Ollama runs as its own service in the Docker Compose stack (`ollama/ollama` image), reachable only from the backend over the internal Compose network at `http://ollama:11434` — it is **not** published to the host. The backend talks to it through one interface, `ImageAnalysisPort`; nothing above that interface knows Ollama exists (see [Architecture](#architecture-1) below). Models are pulled once into a persistent volume (`ollama_data`) so they survive a container restart without re-downloading.
+
+### Model chosen: `qwen2.5vl:3b`
+
+| Property | Value |
+| --- | --- |
+| Model | Qwen2.5-VL, 3B parameters, `q4_K_M` quantization (Ollama's default tag) |
+| Download size | ~3.2GB |
+| Context window | up to 125K tokens (far more than needed here) |
+
+Chosen from what's currently available in Ollama's library of compact vision models, evaluated against this project's actual need — **reading markings, silkscreen text and part references off a photographed object is the dominant signal**, not general scene description:
+
+- **`moondream` (1.8B)** — the smallest and fastest option, but explicitly weaker at detailed OCR/dense text reading than Qwen2.5-VL at a similar size; a poor fit for a feature whose whole point is reading PCB silkscreen and chip markings.
+- **`llava-phi3` (3.8B)** — compact and CPU-friendly, but LLaVA-family models are trained on more general image-captioning data and are noticeably weaker on structured/text-heavy content (charts, screenshots, dense labels) than Qwen2.5-VL at the same size class.
+- **`qwen2.5vl:3b` (3.75B, chosen)** — squarely in the requested 3-4B range, and Qwen2.5-VL's training deliberately emphasizes structured visual content and OCR, which is exactly this feature's use case. Best precision/speed trade-off for the stated need without going bigger.
+- **`minicpm-v` (8B) / `qwen2.5vl:7b` / `llama3.2-vision` (11B)** — meaningfully stronger OCR/document understanding, but 2-3x the parameter count. On a 6-core/12-thread CPU with no GPU, that's a large latency cost for a "sometimes better" gain that isn't clearly justified for a prototype whose job is to evaluate whether the *concept* works at all. Worth revisiting later if `qwen2.5vl:3b`'s accuracy turns out to be the limiting factor, not the model class.
+
+`qwen2.5vl:3b` was picked as the best compromise for this hardware and this exact task; see [Limitations](#limitations) below for how that plays out in practice.
+
+### Resources — CPU-only, no GPU assumed
+
+- No GPU configuration is used anywhere (no `deploy.reservations.devices`, no CUDA/ROCm image variant) — the `ollama/ollama` image runs CPU-only automatically when no GPU is passed through, so this works unmodified on a Ryzen 5 PRO 4650GE VM with no dedicated GPU.
+- No hard memory/CPU limit is set on the `ollama` service in `compose.yaml` — consistent with every other service in this stack, none of which are resource-constrained either. A loaded `qwen2.5vl:3b` uses on the order of a few GB of RAM while active; with ~82GB available on the target host, this is not a meaningful pressure point for a single-user prototype used for occasional analyses.
+- Ollama unloads a model from memory automatically 5 minutes after its last use (its default `keep_alive` behavior) — so RAM usage for this feature is transient, not a standing reservation, even though nothing here configures that explicitly.
+- **Recommended starting point for the target Ryzen 5 PRO 4650GE VM**: 4 vCPU / 8GB RAM dedicated to the container running Ollama is comfortable for `qwen2.5vl:3b` CPU inference; the full 6c/12t host has plenty of headroom beyond that for the rest of the stack.
+
+### CPU-only inference — expect it to be slow
+
+There is no GPU acceleration here. Measured directly (real photos, real model, this exact Docker setup, dev-machine CPU): a warm analysis typically completes in **5-10 seconds**. That is not a target or a guarantee — it will vary with image complexity and host load, and the read timeout defaults to a generous 150s (`OLLAMA_TIMEOUT`, see below) to leave headroom for slower cases. This is an accepted, deliberate trade-off for a prototype used for occasional, one-off analyses.
+
+One specific failure mode is worth calling out because it was actually hit during testing: without a cap on output length, Ollama's schema-constrained decoding on this model occasionally fell into a repetition loop and never emitted the closing brace of the JSON — one test run generated 4,000+ tokens over several minutes before being cut off, instead of the well under 1,000 tokens the schema actually needs. `OllamaApiClient` now sets `num_predict` (a hard cap) and a raised `repeat_penalty` specifically to bound and reduce this — see [Limitations](#limitations) for what's still observed even with that mitigation in place.
+
+### Docker setup
+
+```bash
+docker compose up -d
+docker compose exec ollama ollama pull qwen2.5vl:3b
+```
+
+The first command starts (among everything else) the `ollama` service; the second downloads the model into its persistent volume — a one-time step per volume (`docker compose down -v` would remove it and require re-pulling). There is no way to make Docker Compose pull an Ollama model on its own as part of `up`, so this second command is a required manual step, documented here exactly as run.
+
+### Configuration
+
+```env
+OLLAMA_BASE_URL=http://ollama:11434
+OLLAMA_VISION_MODEL=qwen2.5vl:3b
+OLLAMA_TIMEOUT=150s
+```
+
+All three are optional — the defaults above (matching `application.yaml`) are correct for the Docker Compose setup and need no `.env` entry unless you want to override them (e.g. pointing at a different model, or a longer timeout on slower hardware). None of these are hardcoded in application code — see `gridmind.imageanalysis.ollama.*` in `application.yaml` and `OllamaVisionAdapter`/`OllamaApiClient`.
+
+### Usage from GridMind
+
+Open the app → **Analyse IA** in the top navigation → select a JPEG or PNG photo of a part → **Analyser**. The image is sent to the backend, analyzed by Ollama, and the structured result (type, probable name/model, manufacturer, visible text, characteristics, confidence, suggested search terms) is displayed — each field only appears if the model actually returned it. Nothing is saved: closing or navigating away discards everything, and the backend never writes the uploaded image to disk.
+
+### Architecture
+
+```text
+Image analysis use case (ImageAnalysisService)
+        ↓
+ImageAnalysisPort
+        ↑
+OllamaVisionAdapter  →  OllamaApiClient  →  Ollama (/api/chat)
+```
+
+Same pragmatic-hexagonal pattern as `ProductCatalogProvider` (catalog) and `ImageDownloader` (inventory): the use case depends on a port it owns (`imageanalysis/application/ImageAnalysisPort.kt`), and the one adapter that implements it today (`imageanalysis/infrastructure/ollama/`) is the only code that knows Ollama exists. Response *shape* is enforced by Ollama itself via [structured outputs](https://docs.ollama.com/capabilities/structured-outputs) — a JSON schema passed in the `format` request field — so there's no "hope the model returned valid JSON" step; only the *content* of that JSON (parsing it and mapping it to `ImageAnalysisResult`) is this adapter's job.
+
+Everything Ollama-specific — HTTP request shaping (`OllamaApiClient`), the system prompt (`VisionAnalysisPrompt.kt`), response parsing and error translation (`OllamaVisionAdapter`) — lives in `infrastructure/ollama/` and nowhere else. `ImageAnalysisController` only ever sees `ImageAnalysisService`/`ImageAnalysisResult`.
+
+### Limitations
+
+- **Experimental, evaluation-only.** Not connected to catalog providers, item creation, or persistent image storage — by design, for this prototype.
+- **Occasionally still fails to produce valid JSON, even with `num_predict`/`repeat_penalty` tuning.** Observed directly during testing: for some images, the model still generates unusually long, repetitive output and gets cut off by `num_predict` before completing the JSON object — the request succeeds at the HTTP level (Ollama responds 200) but the response can't be parsed, and GridMind surfaces this as a clean "response could not be parsed" error rather than a crash. This is a real, observed limitation of schema-constrained decoding on a 3B model, not a hypothetical — worth watching for during evaluation, and one of the concrete things a larger model might improve on if this turns out to be the limiting factor.
+- **CPU inference is slow relative to a GPU** — see above for real measured numbers. Not suitable as-is for a bulk/batch workflow.
+- **WEBP is not accepted.** Only JPEG and PNG: the JDK's built-in `ImageIO` has no WEBP reader, and adding a plugin just for this prototype wasn't judged worth it — see `UploadedImageValidator`.
+- **A 3B model will sometimes misread dense or small text**, especially on low-resolution or poorly-lit photos. The prompt explicitly asks the model to prefer leaving a field empty over guessing, but this is a mitigation, not a guarantee — treat every result as a starting point to verify, never as ground truth.
+- **No streaming, no partial results** — the frontend waits for the full response; there's no progressive "thinking" indicator beyond a generic loading state.
+- **Single in-flight request model** — there's no queueing or concurrency control if multiple analyses are triggered at once; each is an independent HTTP call to Ollama, which will simply queue them internally.
 
 ## Notes
 

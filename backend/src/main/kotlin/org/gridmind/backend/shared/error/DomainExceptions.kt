@@ -17,3 +17,8 @@ class InvalidStockAllocationException(message: String) : RuntimeException(messag
 
 /** Thrown when deleting a storage location that still has children or stock in it. Mapped to 409. */
 class LocationInUseException(message: String) : RuntimeException(message)
+
+/** Thrown when the local vision model (Ollama) can't produce a usable analysis — unreachable,
+ * missing model, timeout, malformed/empty response, or an internal error on its side. Mapped
+ * to 503: the analysis feature is temporarily unavailable, not a bad request from the client. */
+class ImageAnalysisUnavailableException(message: String) : RuntimeException(message)

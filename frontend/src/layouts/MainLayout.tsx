@@ -42,6 +42,14 @@ export function MainLayout() {
             >
               Stockage
             </Button>
+            <Button
+              component={NavLink}
+              to="/image-analysis"
+              color="inherit"
+              sx={{ '&.active': { bgcolor: 'action.selected' } }}
+            >
+              Analyse IA
+            </Button>
           </Stack>
           <LanguageSwitcher />
           <ThemeToggle />

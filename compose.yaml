@@ -33,6 +33,25 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      ollama:
+        condition: service_healthy
+    init: true
+
+  ollama:
+    image: 'ollama/ollama:latest'
+    volumes:
+      # Persisted so pulled models survive a restart instead of being re-downloaded —
+      # qwen2.5vl:3b is ~3.2GB.
+      - 'ollama_data:/root/.ollama'
+    # No `ports:` — intentionally not published to the host. The backend reaches it over
+    # the internal Compose network at http://ollama:11434 (see gridmind.imageanalysis.ollama.base-url
+    # in application.yaml); nothing else needs to.
+    healthcheck:
+      test: ['CMD', 'ollama', 'list']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     init: true
 
   frontend:
@@ -53,3 +72,4 @@ volumes:
   backend_gradle_cache:
   backend_media:
   frontend_node_modules:
+  ollama_data:

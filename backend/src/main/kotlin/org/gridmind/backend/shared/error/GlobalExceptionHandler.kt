@@ -5,8 +5,11 @@ import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.MethodArgumentNotValidException
+import org.springframework.web.bind.ServletRequestBindingException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.multipart.MaxUploadSizeExceededException
+import org.springframework.web.multipart.support.MissingServletRequestPartException
 
 @RestControllerAdvice
 class GlobalExceptionHandler {
@@ -60,6 +63,33 @@ class GlobalExceptionHandler {
                 status = HttpStatus.CONFLICT.value(),
                 message = ex.message?.let { "Operation conflicts with existing data." } ?: "Conflict.",
             ),
+        )
+    }
+
+    @ExceptionHandler(ImageAnalysisUnavailableException::class)
+    fun handleImageAnalysisUnavailable(ex: ImageAnalysisUnavailableException): ResponseEntity<ErrorResponse> {
+        logger.warn("Image analysis unavailable: {}", ex.message)
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(
+            ErrorResponse(status = HttpStatus.SERVICE_UNAVAILABLE.value(), message = ex.message.orEmpty()),
+        )
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException::class)
+    fun handleMaxUploadSizeExceeded(ex: MaxUploadSizeExceededException): ResponseEntity<ErrorResponse> {
+        logger.warn("Upload exceeded the max size: {}", ex.message)
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+            ErrorResponse(
+                status = HttpStatus.BAD_REQUEST.value(),
+                message = "The uploaded file exceeds the maximum allowed size.",
+            ),
+        )
+    }
+
+    @ExceptionHandler(ServletRequestBindingException::class, MissingServletRequestPartException::class)
+    fun handleRequestBinding(ex: Exception): ResponseEntity<ErrorResponse> {
+        logger.warn("Request binding failed: {}", ex.message)
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+            ErrorResponse(status = HttpStatus.BAD_REQUEST.value(), message = "Invalid request: ${ex.message}"),
         )
     }
 

@@ -30,6 +30,25 @@ export async function fetchJson<T>(path: string, options?: RequestInit): Promise
     },
   })
 
+  return handleJsonResponse<T>(response)
+}
+
+/**
+ * For multipart/form-data uploads. Deliberately doesn't go through fetchJson: the browser
+ * must set its own `Content-Type: multipart/form-data; boundary=...` header from the
+ * FormData body, which a manually-set `application/json` header (fetchJson's default)
+ * would break.
+ */
+export async function postMultipart<T>(path: string, formData: FormData): Promise<T> {
+  const response = await fetch(`${BASE_URL}${path}`, {
+    method: 'POST',
+    body: formData,
+  })
+
+  return handleJsonResponse<T>(response)
+}
+
+async function handleJsonResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const body = await response.json().catch(() => null)
     throw new ApiError(
