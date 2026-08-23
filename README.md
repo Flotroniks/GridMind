@@ -313,6 +313,8 @@ All three are optional — the defaults above (matching `application.yaml`) are 
 
 **Adding an item from a photo (manual form)** — on **Ajouter un objet** → **Tout faire manuellement**, the plain item-creation form itself has an optional photo picker at the top. Selecting a photo reveals a **Remplir avec IA** button: it runs the same local analysis and fills in whichever fields it found something for (name, manufacturer, reference, description, notes) without touching fields already filled in by hand, so it can be used before, mid-way through, or after typing. The photo becomes the item's image on submit exactly as in the guided flow above. Not available when editing an existing item — replacing an item's image isn't supported yet.
 
+**Bridging to a real catalog search** — the prompt (`VisionAnalysisPrompt.kt`) tells the model to be assertive when an inscription it actually read names a known product outright (e.g. text literally reading "Arduino Nano") rather than hedging on things it can genuinely see, while still refusing to invent a manufacturer/reference it can't justify. Whenever the model isn't confident enough to fill in a precise name, it instead returns `searchQueries` — ready-to-use keyword combinations (what it read + the object type). Both confirm forms above render these as clickable chips ("Pas sûr ? Rechercher dans les catalogues :"); clicking one closes the current step and reopens the catalog search (`ProductSearchModal` → `CatalogSearchStep`) pre-filled with that query and immediately run against DigiKey/Mouser/Adafruit/eBay, so a low-confidence AI guess still gets a real shot at an exact catalog match instead of being a dead end.
+
 ### Architecture
 
 ```text

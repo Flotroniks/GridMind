@@ -22,14 +22,22 @@ interface CatalogSearchStepProps {
   onSelect: (result: CatalogResult) => void
   onManualCreateRequest: (query: string) => void
   onAnalyzePhotoRequest: () => void
+  /** Pre-fills and immediately runs a search — used when arriving here with a keyword
+   * suggested by the image-analysis feature, instead of starting from an empty search. */
+  initialQuery?: string
 }
 
 function messageOf(error: unknown, fallback: string): string {
   return error instanceof ApiError || error instanceof Error ? error.message : fallback
 }
 
-export function CatalogSearchStep({ onSelect, onManualCreateRequest, onAnalyzePhotoRequest }: CatalogSearchStepProps) {
-  const [query, setQuery] = useState('')
+export function CatalogSearchStep({
+  onSelect,
+  onManualCreateRequest,
+  onAnalyzePhotoRequest,
+  initialQuery,
+}: CatalogSearchStepProps) {
+  const [query, setQuery] = useState(initialQuery ?? '')
   const [results, setResults] = useState<CatalogResult[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)

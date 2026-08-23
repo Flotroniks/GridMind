@@ -37,6 +37,13 @@ interface PrefilledItemConfirmStepProps {
   onCancel: () => void
   onSubmit: (input: ItemInput, source: CatalogImageSource | null) => Promise<void>
   onSubmitWithPhoto?: (input: ItemInput, photo: File) => Promise<void>
+  /** Search terms the source (typically an image analysis) suggested for looking this
+   * product up in the catalog providers, when it wasn't confident enough to fill in a
+   * precise name/model. */
+  searchSuggestions?: string[]
+  /** Called with one of `searchSuggestions` when the user wants to search the catalog
+   * providers for it instead of continuing with what's pre-filled. */
+  onSearchCatalogRequest?: (query: string) => void
 }
 
 function findMatchingCategoryId(categoryName: string | null, categories: Category[]): number | null {
@@ -56,6 +63,8 @@ export function PrefilledItemConfirmStep({
   onCancel,
   onSubmit,
   onSubmitWithPhoto,
+  searchSuggestions = [],
+  onSearchCatalogRequest,
 }: PrefilledItemConfirmStepProps) {
   const [selectedImage, setSelectedImage] = useState<PrefillImageOption | null>(images[0] ?? null)
   const [matchedCategoryId, setMatchedCategoryId] = useState<number | null>(() =>
@@ -191,6 +200,25 @@ export function PrefilledItemConfirmStep({
               Créer et utiliser
             </Button>
           )}
+        </Stack>
+      )}
+
+      {searchSuggestions.length > 0 && onSearchCatalogRequest && (
+        <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+          <Typography variant="body2" color="textSecondary">
+            Pas sûr ? Rechercher dans les catalogues :
+          </Typography>
+          {searchSuggestions.map((query) => (
+            <Chip
+              key={query}
+              component="span"
+              label={query}
+              size="small"
+              variant="outlined"
+              clickable
+              onClick={() => onSearchCatalogRequest(query)}
+            />
+          ))}
         </Stack>
       )}
 

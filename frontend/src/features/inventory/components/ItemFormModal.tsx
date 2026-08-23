@@ -14,6 +14,7 @@ interface ItemFormModalProps {
   onCreateCategory: (name: string) => Promise<Category>
   enablePhotoAnalysis?: boolean
   onSubmitWithPhoto?: (input: ItemInput, photo: File) => Promise<void>
+  onSearchCatalogRequest?: (query: string) => void
 }
 
 export function ItemFormModal({
@@ -27,6 +28,7 @@ export function ItemFormModal({
   onCreateCategory,
   enablePhotoAnalysis,
   onSubmitWithPhoto,
+  onSearchCatalogRequest,
 }: ItemFormModalProps) {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -49,6 +51,14 @@ export function ItemFormModal({
                 ? async (input, photo) => {
                     await onSubmitWithPhoto(input, photo)
                     onClose()
+                  }
+                : undefined
+            }
+            onSearchCatalogRequest={
+              onSearchCatalogRequest
+                ? (query) => {
+                    onClose()
+                    onSearchCatalogRequest(query)
                   }
                 : undefined
             }

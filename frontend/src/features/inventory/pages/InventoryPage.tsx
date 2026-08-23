@@ -46,6 +46,12 @@ export function InventoryPage() {
   const [editingItem, setEditingItem] = useState<Item | null>(null)
   const [creating, setCreating] = useState(false)
   const [searchingCatalog, setSearchingCatalog] = useState(false)
+  const [catalogInitialQuery, setCatalogInitialQuery] = useState<string | undefined>(undefined)
+
+  const openCatalogSearch = () => {
+    setCatalogInitialQuery(undefined)
+    setSearchingCatalog(true)
+  }
 
   const loadItems = useCallback(async (currentFilters: ItemFiltersValue) => {
     try {
@@ -120,6 +126,11 @@ export function InventoryPage() {
     setCreating(true)
   }
 
+  const handleSearchCatalogFromForm = (query: string) => {
+    setCatalogInitialQuery(query)
+    setSearchingCatalog(true)
+  }
+
   const handleUpdate = async (input: ItemInput) => {
     if (!editingItem) return
     try {
@@ -166,7 +177,7 @@ export function InventoryPage() {
               </Typography>
             </Box>
             <Stack direction="row" spacing={1}>
-              <Button variant="contained" onClick={() => setSearchingCatalog(true)}>
+              <Button variant="contained" onClick={openCatalogSearch}>
                 Ajouter un objet
               </Button>
             </Stack>
@@ -193,7 +204,7 @@ export function InventoryPage() {
               onEditRequest={setEditingItem}
               onDeleteRequest={setItemPendingDelete}
               hasActiveFilters={Boolean(filters.search || filters.categoryId || filters.manufacturer)}
-              onCreateRequest={() => setSearchingCatalog(true)}
+              onCreateRequest={openCatalogSearch}
             />
           )}
         </CardContent>
@@ -210,6 +221,7 @@ export function InventoryPage() {
         onCreateCategory={handleCreateCategory}
         enablePhotoAnalysis
         onSubmitWithPhoto={handleCreateFromPhoto}
+        onSearchCatalogRequest={handleSearchCatalogFromForm}
       />
 
       <ProductSearchModal
@@ -220,6 +232,7 @@ export function InventoryPage() {
         onSubmit={handleCreateFromCatalog}
         onSubmitWithPhoto={handleCreateFromPhoto}
         onManualCreateRequest={handleManualCreateFromCatalog}
+        initialSearchQuery={catalogInitialQuery}
       />
 
       <ItemFormModal

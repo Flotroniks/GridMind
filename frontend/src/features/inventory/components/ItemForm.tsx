@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'
 import UploadFileIcon from '@mui/icons-material/UploadFile'
-import { Alert, Box, Button, CircularProgress, MenuItem, Skeleton, Stack, TextField, Typography } from '@mui/material'
+import { Alert, Box, Button, Chip, CircularProgress, MenuItem, Skeleton, Stack, TextField, Typography } from '@mui/material'
 import type { Category } from '@/features/categories/types/Category'
 import * as imageAnalysisApi from '@/features/imageanalysis/api/imageAnalysisApi'
 import { toItemInput as imageAnalysisToItemInput } from '@/features/imageanalysis/utils/toItemInput'
@@ -22,6 +22,10 @@ interface ItemFormProps {
   /** Called instead of `onSubmit` when a photo was picked — uploads it as the item's
    * image. Only meaningful together with `enablePhotoAnalysis`. */
   onSubmitWithPhoto?: (input: ItemInput, photo: File) => Promise<void>
+  /** Called with a keyword the last "Remplir avec IA" analysis suggested, when the user
+   * wants to search the catalog providers for it instead. Only meaningful together with
+   * `enablePhotoAnalysis`. */
+  onSearchCatalogRequest?: (query: string) => void
 }
 
 const emptyForm: ItemInput = {
@@ -60,6 +64,7 @@ export function ItemForm({
   onCreateCategory,
   enablePhotoAnalysis = false,
   onSubmitWithPhoto,
+  onSearchCatalogRequest,
 }: ItemFormProps) {
   const [form, setForm] = useState<ItemInput>({ ...emptyForm, ...initialValue })
   const [tagsText, setTagsText] = useState((initialValue?.tags ?? []).join(', '))
@@ -70,6 +75,7 @@ export function ItemForm({
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null)
   const [analyzingPhoto, setAnalyzingPhoto] = useState(false)
   const [photoAnalysisError, setPhotoAnalysisError] = useState<string | null>(null)
+  const [searchSuggestions, setSearchSuggestions] = useState<string[]>([])
   const photoInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -119,6 +125,7 @@ export function ItemForm({
     event.target.value = ''
     setPhotoFile(selected)
     setPhotoAnalysisError(null)
+    setSearchSuggestions([])
   }
 
   const handleAnalyzePhoto = async () => {
@@ -136,6 +143,7 @@ export function ItemForm({
         description: preferFilled(mapped.description, current.description),
         notes: preferFilled(mapped.notes, current.notes),
       }))
+      setSearchSuggestions(result.searchQueries)
     } catch (analyzeError) {
       setPhotoAnalysisError(
         analyzeError instanceof ApiError
@@ -212,6 +220,23 @@ export function ItemForm({
             </Stack>
           )}
           {photoAnalysisError && <Alert severity="error">{photoAnalysisError}</Alert>}
+          {searchSuggestions.length > 0 && onSearchCatalogRequest && (
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+              <Typography variant="body2" color="textSecondary">
+                Pas sûr ? Rechercher dans les catalogues :
+              </Typography>
+              {searchSuggestions.map((query) => (
+                <Chip
+                  key={query}
+                  label={query}
+                  size="small"
+                  variant="outlined"
+                  clickable
+                  onClick={() => onSearchCatalogRequest(query)}
+                />
+              ))}
+            </Stack>
+          )}
         </Stack>
       )}
 

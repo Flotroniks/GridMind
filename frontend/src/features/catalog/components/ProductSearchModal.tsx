@@ -21,10 +21,14 @@ interface ProductSearchModalProps {
   onSubmit: (input: ItemInput, source: CatalogImageSource | null) => Promise<void>
   onSubmitWithPhoto: (input: ItemInput, photo: File) => Promise<void>
   onManualCreateRequest: (query: string) => void
+  /** Opens straight into a search for this term instead of an empty search step — used
+   * when arriving here from a keyword the image-analysis feature suggested elsewhere
+   * (e.g. the manual item form's "Remplir avec IA"). */
+  initialSearchQuery?: string
 }
 
 type Step =
-  | { kind: 'search' }
+  | { kind: 'search'; initialQuery?: string }
   | { kind: 'analyze-photo' }
   | { kind: 'confirm-catalog'; result: CatalogResult }
   | { kind: 'confirm-analysis'; result: ImageAnalysisResult }
@@ -44,6 +48,7 @@ export function ProductSearchModal({
   onSubmit,
   onSubmitWithPhoto,
   onManualCreateRequest,
+  initialSearchQuery,
 }: ProductSearchModalProps) {
   const [step, setStep] = useState<Step>({ kind: 'search' })
   const [photoFile, setPhotoFile] = useState<File | null>(null)
@@ -60,6 +65,12 @@ export function ProductSearchModal({
     setPhotoPreviewUrl(url)
     return () => URL.revokeObjectURL(url)
   }, [photoFile])
+
+  useEffect(() => {
+    if (open && initialSearchQuery) {
+      setStep({ kind: 'search', initialQuery: initialSearchQuery })
+    }
+  }, [open, initialSearchQuery])
 
   const handleClose = () => {
     setStep({ kind: 'search' })
@@ -97,6 +108,7 @@ export function ProductSearchModal({
       <DialogContent>
         {open && step.kind === 'search' && (
           <CatalogSearchStep
+            initialQuery={step.initialQuery}
             onSelect={(result) => setStep({ kind: 'confirm-catalog', result })}
             onManualCreateRequest={(query) => {
               handleClose()
@@ -142,6 +154,8 @@ export function ProductSearchModal({
             previewImageUrl={photoPreviewUrl}
             photoFile={photoFile}
             onSubmitWithPhoto={handleSubmitWithPhoto}
+            searchSuggestions={step.result.searchQueries}
+            onSearchCatalogRequest={(query) => setStep({ kind: 'search', initialQuery: query })}
             categories={categories}
             onCreateCategory={onCreateCategory}
             onCancel={handleClose}
