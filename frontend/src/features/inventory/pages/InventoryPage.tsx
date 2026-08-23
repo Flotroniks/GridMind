@@ -208,6 +208,8 @@ export function InventoryPage() {
         onClose={() => setCreating(false)}
         onSubmit={handleCreate}
         onCreateCategory={handleCreateCategory}
+        enablePhotoAnalysis
+        onSubmitWithPhoto={handleCreateFromPhoto}
       />
 
       <ProductSearchModal

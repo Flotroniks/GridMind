@@ -87,6 +87,15 @@ export function CatalogSearchStep({ onSelect, onManualCreateRequest, onAnalyzePh
         }}
       />
 
+      <Stack direction="row" spacing={1.5} sx={{ flexWrap: 'wrap' }}>
+        <Button variant="outlined" startIcon={<AddIcon />} onClick={() => onManualCreateRequest(query.trim())}>
+          Tout faire manuellement
+        </Button>
+        <Button variant="outlined" startIcon={<AutoAwesomeIcon />} onClick={onAnalyzePhotoRequest}>
+          Analyser une photo (IA)
+        </Button>
+      </Stack>
+
       {error && <Alert severity="error">{error}</Alert>}
 
       {loading && (
@@ -111,15 +120,10 @@ export function CatalogSearchStep({ onSelect, onManualCreateRequest, onAnalyzePh
             borderRadius: 2,
           }}
         >
-          <Typography color="textSecondary">Aucun résultat pour « {query.trim()} ».</Typography>
-          <Stack direction="row" spacing={1.5} sx={{ flexWrap: 'wrap', justifyContent: 'center' }}>
-            <Button variant="outlined" startIcon={<AddIcon />} onClick={() => onManualCreateRequest(query.trim())}>
-              Tout faire manuellement
-            </Button>
-            <Button variant="outlined" startIcon={<AutoAwesomeIcon />} onClick={onAnalyzePhotoRequest}>
-              Analyser une photo (IA)
-            </Button>
-          </Stack>
+          <Typography color="textSecondary">
+            Aucun résultat pour « {query.trim()} ». Vous pouvez continuer manuellement ou via une photo
+            ci-dessus.
+          </Typography>
         </Box>
       )}
 

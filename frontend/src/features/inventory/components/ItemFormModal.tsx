@@ -12,6 +12,8 @@ interface ItemFormModalProps {
   onSubmit: (input: ItemInput) => Promise<void>
   onClose: () => void
   onCreateCategory: (name: string) => Promise<Category>
+  enablePhotoAnalysis?: boolean
+  onSubmitWithPhoto?: (input: ItemInput, photo: File) => Promise<void>
 }
 
 export function ItemFormModal({
@@ -23,6 +25,8 @@ export function ItemFormModal({
   onSubmit,
   onClose,
   onCreateCategory,
+  enablePhotoAnalysis,
+  onSubmitWithPhoto,
 }: ItemFormModalProps) {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -35,10 +39,19 @@ export function ItemFormModal({
             submitLabel={submitLabel}
             onCancel={onClose}
             onCreateCategory={onCreateCategory}
+            enablePhotoAnalysis={enablePhotoAnalysis}
             onSubmit={async (input) => {
               await onSubmit(input)
               onClose()
             }}
+            onSubmitWithPhoto={
+              onSubmitWithPhoto
+                ? async (input, photo) => {
+                    await onSubmitWithPhoto(input, photo)
+                    onClose()
+                  }
+                : undefined
+            }
           />
         )}
       </DialogContent>

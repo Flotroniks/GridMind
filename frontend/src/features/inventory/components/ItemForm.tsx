@@ -1,6 +1,11 @@
-import { useState, type FormEvent } from 'react'
-import { Box, Button, MenuItem, Stack, TextField, Typography } from '@mui/material'
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'
+import UploadFileIcon from '@mui/icons-material/UploadFile'
+import { Alert, Box, Button, CircularProgress, MenuItem, Stack, TextField, Typography } from '@mui/material'
 import type { Category } from '@/features/categories/types/Category'
+import * as imageAnalysisApi from '@/features/imageanalysis/api/imageAnalysisApi'
+import { toItemInput as imageAnalysisToItemInput } from '@/features/imageanalysis/utils/toItemInput'
+import { ApiError } from '@/lib/apiClient'
 import type { ItemInput } from '../types/Item'
 
 interface ItemFormProps {
@@ -10,6 +15,13 @@ interface ItemFormProps {
   onSubmit: (input: ItemInput) => Promise<void>
   onCancel: () => void
   onCreateCategory: (name: string) => Promise<Category>
+  /** Shows a photo picker with a "Remplir avec IA" button that pre-fills the fields
+   * below. Off by default: the catalog/photo-analysis confirm step already handles its
+   * own photo, and editing an existing item doesn't support replacing its image yet. */
+  enablePhotoAnalysis?: boolean
+  /** Called instead of `onSubmit` when a photo was picked — uploads it as the item's
+   * image. Only meaningful together with `enablePhotoAnalysis`. */
+  onSubmitWithPhoto?: (input: ItemInput, photo: File) => Promise<void>
 }
 
 const emptyForm: ItemInput = {
@@ -28,6 +40,10 @@ const emptyForm: ItemInput = {
   quantityInUse: 0,
 }
 
+function preferFilled(mapped: string | null | undefined, current: string | null | undefined): string | null | undefined {
+  return mapped && mapped.trim() ? mapped : current
+}
+
 export function ItemForm({
   initialValue,
   categories,
@@ -35,11 +51,29 @@ export function ItemForm({
   onSubmit,
   onCancel,
   onCreateCategory,
+  enablePhotoAnalysis = false,
+  onSubmitWithPhoto,
 }: ItemFormProps) {
   const [form, setForm] = useState<ItemInput>({ ...emptyForm, ...initialValue })
   const [tagsText, setTagsText] = useState((initialValue?.tags ?? []).join(', '))
   const [newCategoryName, setNewCategoryName] = useState('')
   const [submitting, setSubmitting] = useState(false)
+
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null)
+  const [analyzingPhoto, setAnalyzingPhoto] = useState(false)
+  const [photoAnalysisError, setPhotoAnalysisError] = useState<string | null>(null)
+  const photoInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!photoFile) {
+      setPhotoPreviewUrl(null)
+      return
+    }
+    const url = URL.createObjectURL(photoFile)
+    setPhotoPreviewUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [photoFile])
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -54,7 +88,12 @@ export function ItemForm({
         .map((tag) => tag.trim())
         .filter((tag) => tag.length > 0)
 
-      await onSubmit({ ...form, name: form.name.trim(), tags })
+      const input = { ...form, name: form.name.trim(), tags }
+      if (photoFile && onSubmitWithPhoto) {
+        await onSubmitWithPhoto(input, photoFile)
+      } else {
+        await onSubmit(input)
+      }
     } finally {
       setSubmitting(false)
     }
@@ -68,8 +107,107 @@ export function ItemForm({
     setNewCategoryName('')
   }
 
+  const handlePhotoSelected = (event: ChangeEvent<HTMLInputElement>) => {
+    const selected = event.target.files?.[0] ?? null
+    event.target.value = ''
+    setPhotoFile(selected)
+    setPhotoAnalysisError(null)
+  }
+
+  const handleAnalyzePhoto = async () => {
+    if (!photoFile) return
+    setAnalyzingPhoto(true)
+    setPhotoAnalysisError(null)
+    try {
+      const result = await imageAnalysisApi.analyzeImage(photoFile)
+      const mapped = imageAnalysisToItemInput(result)
+      setForm((current) => ({
+        ...current,
+        name: preferFilled(mapped.name, current.name) || current.name,
+        manufacturer: preferFilled(mapped.manufacturer, current.manufacturer),
+        reference: preferFilled(mapped.reference, current.reference),
+        description: preferFilled(mapped.description, current.description),
+        notes: preferFilled(mapped.notes, current.notes),
+      }))
+    } catch (analyzeError) {
+      setPhotoAnalysisError(
+        analyzeError instanceof ApiError
+          ? analyzeError.message
+          : 'Le serveur GridMind est injoignable. Vérifiez que le backend est démarré.',
+      )
+    } finally {
+      setAnalyzingPhoto(false)
+    }
+  }
+
   return (
     <Stack component="form" spacing={2.5} onSubmit={handleSubmit} sx={{ pt: 1 }}>
+      {enablePhotoAnalysis && (
+        <Stack spacing={1.5} sx={{ p: 2, border: '1px dashed', borderColor: 'divider', borderRadius: 2 }}>
+          <Typography variant="body2" color="textSecondary">
+            Photo (optionnelle) — utilisée comme image de l'objet, et peut pré-remplir la fiche via
+            l'IA locale.
+          </Typography>
+          <input
+            ref={photoInputRef}
+            type="file"
+            accept="image/jpeg,image/png"
+            hidden
+            onChange={handlePhotoSelected}
+          />
+          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<UploadFileIcon />}
+              onClick={() => photoInputRef.current?.click()}
+            >
+              {photoFile ? 'Changer la photo' : 'Sélectionner une photo'}
+            </Button>
+            {photoPreviewUrl && (
+              <Box
+                sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 1,
+                  overflow: 'hidden',
+                  bgcolor: 'background.default',
+                  flexShrink: 0,
+                }}
+              >
+                <Box
+                  component="img"
+                  src={photoPreviewUrl}
+                  alt="Photo sélectionnée"
+                  sx={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                />
+              </Box>
+            )}
+            {photoFile && (
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<AutoAwesomeIcon />}
+                disabled={analyzingPhoto}
+                onClick={() => void handleAnalyzePhoto()}
+              >
+                Remplir avec IA
+              </Button>
+            )}
+          </Stack>
+          {analyzingPhoto && (
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center', color: 'text.secondary' }}>
+              <CircularProgress size={14} />
+              <Typography variant="body2" color="textSecondary">
+                Analyse en cours… cela peut prendre quelques secondes à quelques dizaines de secondes
+                sur CPU.
+              </Typography>
+            </Stack>
+          )}
+          {photoAnalysisError && <Alert severity="error">{photoAnalysisError}</Alert>}
+        </Stack>
+      )}
+
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2.5 }}>
         <TextField
           label="Nom"
