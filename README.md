@@ -32,7 +32,7 @@ The backend runs on http://localhost:8080 and reloads on code changes; the front
 
 To try the experimental image-analysis prototype, also pull the vision model once Ollama is up (see [Local AI / Image analysis](#local-ai--image-analysis) for details):
 ```bash
-docker compose exec ollama ollama pull qwen2.5vl:3b
+docker compose exec ollama ollama pull qwen2.5vl:7b
 ```
 
 ## Quick start (without Docker)
@@ -242,29 +242,34 @@ GridMind is a modular monolith, not a full hexagonal/clean-architecture rewrite:
 
 Ollama runs as its own service in the Docker Compose stack (`ollama/ollama` image), reachable only from the backend over the internal Compose network at `http://ollama:11434` — it is **not** published to the host. The backend talks to it through one interface, `ImageAnalysisPort`; nothing above that interface knows Ollama exists (see [Architecture](#architecture-1) below). Models are pulled once into a persistent volume (`ollama_data`) so they survive a container restart without re-downloading.
 
-### Model chosen: `qwen2.5vl:3b`
+### Model chosen: `qwen2.5vl:7b`
 
 | Property | Value |
 | --- | --- |
-| Model | Qwen2.5-VL, 3B parameters, `q4_K_M` quantization (Ollama's default tag) |
-| Download size | ~3.2GB |
+| Model | Qwen2.5-VL, 7B parameters, `q4_K_M` quantization (Ollama's default tag) |
+| Download size | ~6.0GB |
 | Context window | up to 125K tokens (far more than needed here) |
 
-Chosen from what's currently available in Ollama's library of compact vision models, evaluated against this project's actual need — **reading markings, silkscreen text and part references off a photographed object is the dominant signal**, not general scene description:
+Originally started at `qwen2.5vl:3b` (see below for why); moved up to `qwen2.5vl:7b` after live testing showed the 3B model's output quality was inconsistent enough to undermine the feature — the same photo could get a confident, useful result on one run and a generic, empty one on the next, which isn't something more careful prompting alone can fix. `qwen2.5vl:7b` was re-measured directly (same hardware, same test photo) rather than assumed better:
+
+- **Consistency**: two back-to-back runs on the same photo produced identical output (same read text, same search terms) — the 3B model gave visibly different results between runs on the same input.
+- **OCR precision**: correctly transcribed on-screen text verbatim into `visibleText`, and correctly left `name`/`model` empty rather than guessing when it genuinely couldn't identify the specific product — exactly the "don't hallucinate, prefer empty" behavior the prompt asks for, followed more reliably than at 3B.
+- **Speed cost was smaller than expected**: see [Inference speed](#inference-speed--cpu-by-default-dramatically-faster-with-the-optional-gpu) below — warm CPU inference is close to what 3B measured at, not the 2x+ some model-card benchmarks would suggest, likely because output length (not raw model size) dominates wall-clock time for this schema-constrained, short-output use case.
+
+Models evaluated (original 3-4B shortlist, then the step up):
 
 - **`moondream` (1.8B)** — the smallest and fastest option, but explicitly weaker at detailed OCR/dense text reading than Qwen2.5-VL at a similar size; a poor fit for a feature whose whole point is reading PCB silkscreen and chip markings.
 - **`llava-phi3` (3.8B)** — compact and CPU-friendly, but LLaVA-family models are trained on more general image-captioning data and are noticeably weaker on structured/text-heavy content (charts, screenshots, dense labels) than Qwen2.5-VL at the same size class.
-- **`qwen2.5vl:3b` (3.75B, chosen)** — squarely in the requested 3-4B range, and Qwen2.5-VL's training deliberately emphasizes structured visual content and OCR, which is exactly this feature's use case. Best precision/speed trade-off for the stated need without going bigger.
-- **`minicpm-v` (8B) / `qwen2.5vl:7b` / `llama3.2-vision` (11B)** — meaningfully stronger OCR/document understanding, but 2-3x the parameter count. On a 6-core/12-thread CPU with no GPU, that's a large latency cost for a "sometimes better" gain that isn't clearly justified for a prototype whose job is to evaluate whether the *concept* works at all. Worth revisiting later if `qwen2.5vl:3b`'s accuracy turns out to be the limiting factor, not the model class.
-
-`qwen2.5vl:3b` was picked as the best compromise for this hardware and this exact task; see [Limitations](#limitations) below for how that plays out in practice.
+- **`qwen2.5vl:3b` (3.75B, original choice)** — squarely in the requested 3-4B range and OCR-focused, but proved inconsistent enough in practice (see above) to no longer be the default.
+- **`qwen2.5vl:7b` (7.6B, chosen)** — same OCR-focused training as the 3B variant, meaningfully more reliable at both reading text precisely and correctly declining to guess a name it can't justify, for a smaller real-world latency cost than the parameter-count difference implies.
+- **`minicpm-v` (8B) / `llama3.2-vision` (11B)** — not re-evaluated: `qwen2.5vl:7b` already resolved the observed quality problem without needing to go further up in size; worth revisiting only if `qwen2.5vl:7b` itself turns out to be the limiting factor.
 
 ### Resources — CPU-only by default, no GPU assumed
 
 - The base `compose.yaml` uses no GPU configuration at all (no `deploy.reservations.devices`, no CUDA/ROCm image variant) — the `ollama/ollama` image runs CPU-only automatically when no GPU is passed through, so this works unmodified on a Ryzen 5 PRO 4650GE VM with no dedicated GPU. This is deliberate and stays the default: the deployment target has no *guaranteed* GPU, so the app must not require one.
-- No hard memory/CPU limit is set on the `ollama` service — consistent with every other service in this stack, none of which are resource-constrained either. A loaded `qwen2.5vl:3b` uses on the order of a few GB of RAM (CPU) or VRAM (GPU) while active; with ~82GB available on the target host, this is not a meaningful pressure point for a single-user prototype used for occasional analyses.
+- No hard memory/CPU limit is set on the `ollama` service — consistent with every other service in this stack, none of which are resource-constrained either. A loaded `qwen2.5vl:7b` uses on the order of 6-8GB of RAM (CPU) or VRAM (GPU) while active; with ~82GB available on the target host, this is not a meaningful pressure point for a single-user prototype used for occasional analyses.
 - Ollama unloads a model from memory automatically 5 minutes after its last use (its default `keep_alive` behavior) — so RAM/VRAM usage for this feature is transient, not a standing reservation, even though nothing here configures that explicitly.
-- **Recommended starting point for the target Ryzen 5 PRO 4650GE VM**: 4 vCPU / 8GB RAM dedicated to the container running Ollama is comfortable for `qwen2.5vl:3b` CPU inference; the full 6c/12t host has plenty of headroom beyond that for the rest of the stack.
+- **Recommended starting point for the target Ryzen 5 PRO 4650GE VM**: 4 vCPU / 8GB RAM dedicated to the container running Ollama is comfortable for `qwen2.5vl:7b` CPU inference; the full 6c/12t host has plenty of headroom beyond that for the rest of the stack.
 - **Optional GPU acceleration** — if the machine running GridMind *does* have a dedicated NVIDIA GPU (a dev machine, most likely — not the CPU-only Proxmox target), `compose.gpu.yaml` layers a GPU reservation onto the `ollama` service without touching the base file:
   ```bash
   docker compose -f compose.yaml -f compose.gpu.yaml up -d
@@ -273,14 +278,14 @@ Chosen from what's currently available in Ollama's library of compact vision mod
 
 ### Inference speed — CPU by default, dramatically faster with the optional GPU
 
-There is no GPU acceleration unless `compose.gpu.yaml` is layered on (see above). Measured directly, real photos, real model, this exact Docker setup:
+There is no GPU acceleration unless `compose.gpu.yaml` is layered on (see above). Measured directly, real photos, real model (`qwen2.5vl:7b`), this exact Docker setup:
 
 | | Cold (model load) | Warm |
 | --- | --- | --- |
-| CPU (dev-machine Ryzen, no GPU override) | ~1-2 min | **5-10 seconds** |
-| GPU (dev-machine RTX 3070, `compose.gpu.yaml`) | ~1 min (one-time, loading weights into VRAM) | **under 1-2 seconds** |
+| CPU (dev-machine Ryzen, no GPU override) | ~1min 25s | **~8 seconds** |
+| GPU (dev-machine RTX 3070, `compose.gpu.yaml`) | ~10s (one-time, loading weights into VRAM) | **under 2 seconds** |
 
-Neither number is a guarantee — image complexity and host load both matter — but the relative gap (CPU warm analyses taking several seconds vs. GPU warm analyses completing in about a second) is real and reproducible, not a rounding error. The read timeout defaults to a generous 150s (`OLLAMA_TIMEOUT`, see below) specifically to give the CPU path headroom for slower cases; a GPU host has no trouble staying well under that. This is an accepted, deliberate CPU-first trade-off for a prototype used for occasional, one-off analyses on hardware that isn't guaranteed a GPU — GPU acceleration is a bonus where available, not a requirement anywhere in the code.
+The move from `qwen2.5vl:3b` to `qwen2.5vl:7b` cost noticeably less than the ~2x parameter-count difference would suggest — CPU warm inference (~8s) is close to the ~5-10s previously measured for the 3B model. For this schema-constrained, short-output use case, output length dominates wall-clock time more than raw model size does. Neither number is a guarantee — image complexity and host load both matter — but the relative gap (CPU warm analyses taking several seconds vs. GPU warm analyses completing in under two) is real and reproducible, not a rounding error. The read timeout defaults to a generous 150s (`OLLAMA_TIMEOUT`, see below) specifically to give the CPU path headroom for slower cases; a GPU host has no trouble staying well under that. This is an accepted, deliberate CPU-first trade-off for a prototype used for occasional, one-off analyses on hardware that isn't guaranteed a GPU — GPU acceleration is a bonus where available, not a requirement anywhere in the code.
 
 One specific failure mode is worth calling out because it was actually hit during testing: without a cap on output length, Ollama's schema-constrained decoding on this model occasionally fell into a repetition loop and never emitted the closing brace of the JSON — one test run generated 4,000+ tokens over several minutes before being cut off, instead of the well under 1,000 tokens the schema actually needs. `OllamaApiClient` now sets `num_predict` (a hard cap) and a raised `repeat_penalty` specifically to bound and reduce this — see [Limitations](#limitations) for what's still observed even with that mitigation in place.
 
@@ -288,7 +293,7 @@ One specific failure mode is worth calling out because it was actually hit durin
 
 ```bash
 docker compose up -d
-docker compose exec ollama ollama pull qwen2.5vl:3b
+docker compose exec ollama ollama pull qwen2.5vl:7b
 ```
 
 Add `-f compose.gpu.yaml` to the first command (see [Resources](#resources--cpu-only-by-default-no-gpu-assumed) above) on a machine with a dedicated NVIDIA GPU — the model only needs pulling once either way, since both paths share the same `ollama_data` volume.
@@ -299,7 +304,7 @@ The first command starts (among everything else) the `ollama` service; the secon
 
 ```env
 OLLAMA_BASE_URL=http://ollama:11434
-OLLAMA_VISION_MODEL=qwen2.5vl:3b
+OLLAMA_VISION_MODEL=qwen2.5vl:7b
 OLLAMA_TIMEOUT=150s
 ```
 

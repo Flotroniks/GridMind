@@ -41,7 +41,7 @@ services:
     image: 'ollama/ollama:latest'
     volumes:
       # Persisted so pulled models survive a restart instead of being re-downloaded —
-      # qwen2.5vl:3b is ~3.2GB.
+      # qwen2.5vl:7b is ~6GB.
       - 'ollama_data:/root/.ollama'
     # No `ports:` — intentionally not published to the host. The backend reaches it over
     # the internal Compose network at http://ollama:11434 (see gridmind.imageanalysis.ollama.base-url

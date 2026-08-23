@@ -64,7 +64,7 @@ gridmind:
       # "ollama" resolves via the Docker Compose network (see compose.yaml) — not
       # reachable like this outside of `docker compose up`.
       base-url: ${OLLAMA_BASE_URL:http://ollama:11434}
-      model: ${OLLAMA_VISION_MODEL:qwen2.5vl:3b}
+      model: ${OLLAMA_VISION_MODEL:qwen2.5vl:7b}
       # CPU inference on a multimodal model is slow by nature — generous on purpose, see
       # the README's "Local AI / Image analysis" section.
       timeout: ${OLLAMA_TIMEOUT:150s}
