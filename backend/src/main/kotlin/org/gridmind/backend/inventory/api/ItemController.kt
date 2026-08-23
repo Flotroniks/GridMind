@@ -8,6 +8,7 @@ import org.gridmind.backend.inventory.application.ImageStorageService
 import org.gridmind.backend.inventory.application.InventoryService
 import org.gridmind.backend.inventory.domain.Item
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
@@ -16,8 +17,10 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.RequestPart
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.multipart.MultipartFile
 
 @RestController
 @RequestMapping("/api/inventory")
@@ -51,6 +54,22 @@ class ItemController(
     fun createItem(@Valid @RequestBody request: ItemRequest): ItemResponse {
         val imageId = request.sourceImageUrl
             ?.let { imageStorageService.downloadAndStore(it, request.sourceImageProvider) }
+            ?.id
+        val item = inventoryService.create(request.toItem(imageId = imageId))
+        return ItemResponse.from(item, categoryNamesById()[item.categoryId])
+    }
+
+    // Separate from createItem: only the flow that has a real local file to hand over
+    // (the image-analysis prototype) uses this one. Everything else — manual entry,
+    // catalog search with a provider image URL — keeps using the plain JSON endpoint.
+    @PostMapping("/items/with-photo", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    @ResponseStatus(HttpStatus.CREATED)
+    fun createItemWithPhoto(
+        @Valid @RequestPart("item") request: ItemRequest,
+        @RequestPart(value = "image", required = false) image: MultipartFile?,
+    ): ItemResponse {
+        val imageId = image?.takeIf { !it.isEmpty }
+            ?.let { imageStorageService.storeUploaded(it.bytes, it.contentType ?: "application/octet-stream", "Analyse IA locale") }
             ?.id
         val item = inventoryService.create(request.toItem(imageId = imageId))
         return ItemResponse.from(item, categoryNamesById()[item.categoryId])

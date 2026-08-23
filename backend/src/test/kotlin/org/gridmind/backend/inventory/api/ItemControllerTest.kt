@@ -16,10 +16,12 @@ import org.mockito.Mockito.verifyNoInteractions
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.context.annotation.Import
+import org.springframework.mock.web.MockMultipartFile
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
@@ -123,6 +125,76 @@ class ItemControllerTest {
         )
             .andExpect(status().isBadRequest)
             .andExpect(jsonPath("$.fieldErrors.name").exists())
+    }
+
+    @Test
+    fun `createItemWithPhoto returns 201 and attaches the uploaded image`() {
+        val itemPart = MockMultipartFile(
+            "item",
+            "",
+            "application/json",
+            objectMapper.writeValueAsString(mapOf("name" to "D1 Mini", "quantity" to 1)).toByteArray(),
+        )
+        val imagePart = MockMultipartFile("image", "photo.jpg", "image/jpeg", byteArrayOf(1, 2, 3))
+        `when`(categoryService.findAll()).thenReturn(emptyList())
+        `when`(imageStorageService.storeUploaded(byteArrayOf(1, 2, 3), "image/jpeg", "Analyse IA locale"))
+            .thenReturn(StoredImage(id = 3L, checksum = "abc", contentType = "image/jpeg", filePath = "/data/media/abc.jpg"))
+        `when`(inventoryService.create(Item(name = "D1 Mini", quantity = 1, imageId = 3L)))
+            .thenReturn(Item(id = 1L, name = "D1 Mini", quantity = 1, imageId = 3L))
+
+        mockMvc.perform(multipart("/api/inventory/items/with-photo").file(itemPart).file(imagePart))
+            .andExpect(status().isCreated)
+            .andExpect(jsonPath("$.imageUrl").value("/api/media/3"))
+    }
+
+    @Test
+    fun `createItemWithPhoto succeeds without an image part`() {
+        val itemPart = MockMultipartFile(
+            "item",
+            "",
+            "application/json",
+            objectMapper.writeValueAsString(mapOf("name" to "D1 Mini", "quantity" to 1)).toByteArray(),
+        )
+        `when`(categoryService.findAll()).thenReturn(emptyList())
+        `when`(inventoryService.create(Item(name = "D1 Mini", quantity = 1)))
+            .thenReturn(Item(id = 1L, name = "D1 Mini", quantity = 1))
+
+        mockMvc.perform(multipart("/api/inventory/items/with-photo").file(itemPart))
+            .andExpect(status().isCreated)
+            .andExpect(jsonPath("$.imageUrl").doesNotExist())
+        verifyNoInteractions(imageStorageService)
+    }
+
+    @Test
+    fun `createItemWithPhoto still succeeds when storing the uploaded image fails`() {
+        val itemPart = MockMultipartFile(
+            "item",
+            "",
+            "application/json",
+            objectMapper.writeValueAsString(mapOf("name" to "D1 Mini", "quantity" to 1)).toByteArray(),
+        )
+        val imagePart = MockMultipartFile("image", "photo.jpg", "image/jpeg", byteArrayOf(1, 2, 3))
+        `when`(categoryService.findAll()).thenReturn(emptyList())
+        `when`(imageStorageService.storeUploaded(byteArrayOf(1, 2, 3), "image/jpeg", "Analyse IA locale")).thenReturn(null)
+        `when`(inventoryService.create(Item(name = "D1 Mini", quantity = 1)))
+            .thenReturn(Item(id = 1L, name = "D1 Mini", quantity = 1))
+
+        mockMvc.perform(multipart("/api/inventory/items/with-photo").file(itemPart).file(imagePart))
+            .andExpect(status().isCreated)
+            .andExpect(jsonPath("$.imageUrl").doesNotExist())
+    }
+
+    @Test
+    fun `createItemWithPhoto returns 400 when name is blank`() {
+        val itemPart = MockMultipartFile(
+            "item",
+            "",
+            "application/json",
+            objectMapper.writeValueAsString(mapOf("name" to "", "quantity" to 1)).toByteArray(),
+        )
+
+        mockMvc.perform(multipart("/api/inventory/items/with-photo").file(itemPart))
+            .andExpect(status().isBadRequest)
     }
 
     @Test

@@ -1,4 +1,4 @@
-package org.gridmind.backend.imageanalysis.application
+package org.gridmind.backend.shared.validation
 
 import java.io.ByteArrayInputStream
 import java.io.IOException
@@ -10,6 +10,9 @@ import javax.imageio.ImageIO
  * Only JPEG and PNG are accepted: WEBP was in scope conceptually, but the JDK's built-in
  * ImageIO has no WEBP reader, and pulling in a plugin just for this prototype isn't worth
  * it — see the README's "Local AI / Image analysis" section.
+ *
+ * Shared across features: used both for the image-analysis prototype's own upload and for
+ * an item's uploaded photo (see `ImageStorageService.storeUploaded`).
  */
 object UploadedImageValidator {
 

@@ -24,13 +24,19 @@ interface PrefilledItemConfirmStepProps {
   /** Selectable image candidates with a real, persistable URL (catalog providers only —
    * empty for a locally analyzed photo, which has no such URL). */
   images: PrefillImageOption[]
-  /** A local, non-persistable preview to show for context (e.g. the photo that was just
-   * analyzed) when there's nothing in `images` to pick from. Display-only. */
+  /** A local preview to show for context when there's nothing in `images` to pick from
+   * (e.g. the photo that was just analyzed). Display-only — `photoFile` below is what
+   * actually gets uploaded. */
   previewImageUrl?: string | null
+  /** The real local file behind `previewImageUrl`, if any. When present (with
+   * `onSubmitWithPhoto` provided), confirming uploads it as the item's image instead of
+   * going through the URL-based `onSubmit`. */
+  photoFile?: File | null
   categories: Category[]
   onCreateCategory: (name: string) => Promise<Category>
   onCancel: () => void
   onSubmit: (input: ItemInput, source: CatalogImageSource | null) => Promise<void>
+  onSubmitWithPhoto?: (input: ItemInput, photo: File) => Promise<void>
 }
 
 function findMatchingCategoryId(categoryName: string | null, categories: Category[]): number | null {
@@ -44,10 +50,12 @@ export function PrefilledItemConfirmStep({
   suggestedCategoryName,
   images,
   previewImageUrl = null,
+  photoFile = null,
   categories,
   onCreateCategory,
   onCancel,
   onSubmit,
+  onSubmitWithPhoto,
 }: PrefilledItemConfirmStepProps) {
   const [selectedImage, setSelectedImage] = useState<PrefillImageOption | null>(images[0] ?? null)
   const [matchedCategoryId, setMatchedCategoryId] = useState<number | null>(() =>
@@ -70,10 +78,14 @@ export function PrefilledItemConfirmStep({
   const handleConfirm = async () => {
     setConfirming(true)
     try {
-      await onSubmit(
-        formValue,
-        selectedImage ? { url: selectedImage.url, provider: selectedImage.provider } : null,
-      )
+      if (photoFile && onSubmitWithPhoto) {
+        await onSubmitWithPhoto(formValue, photoFile)
+      } else {
+        await onSubmit(
+          formValue,
+          selectedImage ? { url: selectedImage.url, provider: selectedImage.provider } : null,
+        )
+      }
     } finally {
       setConfirming(false)
     }
@@ -249,7 +261,7 @@ export function PrefilledItemConfirmStep({
       {images.length === 0 && previewImageUrl && (
         <Box>
           <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
-            Photo analysée (non enregistrée dans l'objet)
+            {photoFile ? 'Photo (utilisée comme image de l\'objet)' : 'Photo analysée (non enregistrée dans l\'objet)'}
           </Typography>
           <Box
             sx={{

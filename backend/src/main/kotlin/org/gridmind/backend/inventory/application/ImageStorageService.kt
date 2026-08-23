@@ -4,6 +4,7 @@ import org.gridmind.backend.inventory.domain.StoredImage
 import org.gridmind.backend.inventory.infrastructure.persistence.StoredImageEntity
 import org.gridmind.backend.inventory.infrastructure.persistence.StoredImageRepository
 import org.gridmind.backend.shared.error.StoredImageNotFoundException
+import org.gridmind.backend.shared.validation.UploadedImageValidator
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -70,7 +71,30 @@ class ImageStorageService(
         null
     }
 
-    private fun store(content: DownloadedContent, sourceUrl: String, sourceProvider: String?): StoredImage {
+    /**
+     * Stores an image the user uploaded directly (e.g. the photo they just had analyzed
+     * locally by the image-analysis prototype) rather than one downloaded from a provider
+     * URL — same dedup-by-checksum storage underneath, just without a `sourceUrl`. Content
+     * is sniffed with [UploadedImageValidator] (format + real decodability), not trusted
+     * from the browser's declared content type. Best-effort like [downloadAndStore]: any
+     * failure here just means no image gets attached, never a blocked item creation.
+     */
+    @Transactional
+    fun storeUploaded(bytes: ByteArray, contentType: String, sourceProvider: String?): StoredImage? {
+        if (bytes.size > MAX_IMAGE_BYTES) {
+            logger.warn("Uploaded image exceeds the {}-byte limit, skipping.", MAX_IMAGE_BYTES)
+            return null
+        }
+        return try {
+            UploadedImageValidator.validate(bytes)
+            store(DownloadedContent(bytes, contentType), sourceUrl = null, sourceProvider)
+        } catch (ex: Exception) {
+            logger.warn("Failed to store uploaded image: {}", ex.message)
+            null
+        }
+    }
+
+    private fun store(content: DownloadedContent, sourceUrl: String?, sourceProvider: String?): StoredImage {
         val checksum = sha256Hex(content.bytes)
 
         storedImageRepository.findByChecksum(checksum)?.let { return it.toDomain() }

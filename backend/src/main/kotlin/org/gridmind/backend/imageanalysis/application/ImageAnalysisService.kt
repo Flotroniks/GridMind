@@ -1,6 +1,7 @@
 package org.gridmind.backend.imageanalysis.application
 
 import org.gridmind.backend.imageanalysis.domain.ImageAnalysisResult
+import org.gridmind.backend.shared.validation.UploadedImageValidator
 import org.springframework.stereotype.Service
 
 /**

@@ -1,4 +1,4 @@
-package org.gridmind.backend.imageanalysis.application
+package org.gridmind.backend.shared.validation
 
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertEquals

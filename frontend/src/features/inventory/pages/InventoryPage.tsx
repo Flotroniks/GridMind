@@ -103,6 +103,16 @@ export function InventoryPage() {
     }
   }
 
+  const handleCreateFromPhoto = async (input: ItemInput, photo: File) => {
+    try {
+      await inventoryApi.createItemWithPhoto(input, photo)
+      showToast('Objet ajouté.', 'success')
+      await loadItems(filters)
+    } catch (createError) {
+      showToast(messageOf(createError, 'Création impossible.'), 'error')
+    }
+  }
+
   const handleManualCreateFromCatalog = (query: string) => {
     if (query) {
       setFilters((current) => ({ ...current, search: query }))
@@ -206,6 +216,7 @@ export function InventoryPage() {
         onClose={() => setSearchingCatalog(false)}
         onCreateCategory={handleCreateCategory}
         onSubmit={handleCreateFromCatalog}
+        onSubmitWithPhoto={handleCreateFromPhoto}
         onManualCreateRequest={handleManualCreateFromCatalog}
       />
 

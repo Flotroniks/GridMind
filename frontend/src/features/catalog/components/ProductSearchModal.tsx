@@ -19,6 +19,7 @@ interface ProductSearchModalProps {
   onClose: () => void
   onCreateCategory: (name: string) => Promise<Category>
   onSubmit: (input: ItemInput, source: CatalogImageSource | null) => Promise<void>
+  onSubmitWithPhoto: (input: ItemInput, photo: File) => Promise<void>
   onManualCreateRequest: (query: string) => void
 }
 
@@ -41,6 +42,7 @@ export function ProductSearchModal({
   onClose,
   onCreateCategory,
   onSubmit,
+  onSubmitWithPhoto,
   onManualCreateRequest,
 }: ProductSearchModalProps) {
   const [step, setStep] = useState<Step>({ kind: 'search' })
@@ -67,6 +69,11 @@ export function ProductSearchModal({
 
   const handleSubmit = async (input: ItemInput, source: CatalogImageSource | null) => {
     await onSubmit(input, source)
+    handleClose()
+  }
+
+  const handleSubmitWithPhoto = async (input: ItemInput, photo: File) => {
+    await onSubmitWithPhoto(input, photo)
     handleClose()
   }
 
@@ -133,6 +140,8 @@ export function ProductSearchModal({
             suggestedCategoryName={step.result.objectType}
             images={[]}
             previewImageUrl={photoPreviewUrl}
+            photoFile={photoFile}
+            onSubmitWithPhoto={handleSubmitWithPhoto}
             categories={categories}
             onCreateCategory={onCreateCategory}
             onCancel={handleClose}

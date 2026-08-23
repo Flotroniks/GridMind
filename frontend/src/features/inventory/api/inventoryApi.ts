@@ -1,4 +1,4 @@
-import { fetchJson } from '@/lib/apiClient'
+import { fetchJson, postMultipart } from '@/lib/apiClient'
 import type { Item, ItemFilters, ItemInput } from '../types/Item'
 
 const BASE_PATH = '/api/inventory/items'
@@ -31,6 +31,15 @@ export function createItem(input: ItemInput, options?: CreateItemOptions): Promi
     method: 'POST',
     body: JSON.stringify({ ...input, ...options }),
   })
+}
+
+/** Creates an item with a locally uploaded photo (e.g. from the image-analysis flow) as
+ * its image, instead of one downloaded from a catalog provider's URL. */
+export function createItemWithPhoto(input: ItemInput, photo: File): Promise<Item> {
+  const formData = new FormData()
+  formData.append('item', new Blob([JSON.stringify(input)], { type: 'application/json' }))
+  formData.append('image', photo)
+  return postMultipart<Item>(`${BASE_PATH}/with-photo`, formData)
 }
 
 export function updateItem(id: number, input: ItemInput): Promise<Item> {

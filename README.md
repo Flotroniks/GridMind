@@ -70,11 +70,12 @@ docker compose exec ollama ollama pull qwen2.5vl:3b
 - **Storage**: hierarchical storage locations (e.g. Workshop → Drawer → Bin), with an item's stock spread across multiple locations and moved between them atomically
 - **Product search**: look up a part by name or MPN across external catalogs (DigiKey, Mouser) instead of typing everything by hand — see [Product catalog providers](#product-catalog-providers)
 - **Local image storage**: an image picked during product search is downloaded once and kept on disk, independent of the provider or an internet connection
-- **Image analysis (experimental)**: photograph a part and get a best-effort identification from a local vision model — a standalone prototype, not yet wired into inventory creation — see [Local AI / Image analysis](#local-ai--image-analysis)
+- **Image analysis (experimental)**: photograph a part and get a best-effort identification from a local vision model, either as a standalone evaluation or as an alternative to manual entry when adding an item (pre-fills the form, photo becomes the item's image) — see [Local AI / Image analysis](#local-ai--image-analysis)
 
 ## Backend API
 
 - `GET/POST /api/inventory/items`, `GET/PATCH/DELETE /api/inventory/items/{id}` — inventory items (`search`, `categoryId`, `manufacturer` query filters)
+- `POST /api/inventory/items/with-photo` — create an item with a locally uploaded photo as its image (multipart: `item` JSON part + optional `image` file part), used by the image-analysis "add from a photo" flow
 - `GET/POST /api/categories` — categories
 - `GET/POST/DELETE /api/storage/locations`, `GET /api/storage/locations/{id}/contents` — storage hierarchy
 - `GET /api/storage/items/{itemId}/stock`, `POST /api/storage/stock/allocate`, `POST /api/storage/stock/move` — stock allocation and movement
@@ -235,7 +236,7 @@ GridMind is a modular monolith, not a full hexagonal/clean-architecture rewrite:
 
 ## Local AI / Image analysis
 
-**Experimental prototype.** Photograph a maker/electronics part, get a best-effort structured identification from a vision model running entirely locally via [Ollama](https://ollama.com) — no cloud API, no external service. This is deliberately a standalone evaluation: upload → local analysis → result displayed. It is **not** wired into DigiKey/Mouser/Adafruit/eBay, does not create inventory items, and does not persist the image anywhere — it exists purely to evaluate recognition quality on real hardware before deciding whether (and how) to build on it.
+**Experimental.** Photograph a maker/electronics part, get a best-effort structured identification from a vision model running entirely locally via [Ollama](https://ollama.com) — no cloud API, no external service. Available two ways: as a standalone evaluation page (upload → analysis → result, nothing saved), and as an alternative to manual entry when adding an inventory item (analysis pre-fills the item form, and the photo becomes the item's image) — see [Usage from GridMind](#usage-from-gridmind) below. Still **not** wired into DigiKey/Mouser/Adafruit/eBay — it identifies an object from a photo, it doesn't look one up in a distributor catalog.
 
 ### Role of Ollama
 
@@ -292,7 +293,9 @@ All three are optional — the defaults above (matching `application.yaml`) are 
 
 ### Usage from GridMind
 
-Open the app → **Analyse IA** in the top navigation → select a JPEG or PNG photo of a part → **Analyser**. The image is sent to the backend, analyzed by Ollama, and the structured result (type, probable name/model, manufacturer, visible text, characteristics, confidence, suggested search terms) is displayed — each field only appears if the model actually returned it. Nothing is saved: closing or navigating away discards everything, and the backend never writes the uploaded image to disk.
+**Standalone evaluation** — open the app → **Analyse IA** in the top navigation → select a JPEG or PNG photo of a part → **Analyser**. The structured result (type, probable name/model, manufacturer, visible text, characteristics, confidence, suggested search terms) is displayed — each field only appears if the model actually returned it. Nothing is saved here: closing or navigating away discards everything, and the backend never writes this upload to disk.
+
+**Adding an item from a photo** — on the Inventaire page, **Ajouter un objet** → if a text search finds nothing, choose **Analyser une photo (IA)** instead of **Tout faire manuellement**. The analysis result pre-fills the same item form a catalog search result would (name — falling back to the detected object type when the model didn't commit to a precise name — manufacturer, reference, a suggested category, visible text as notes), through the same review-before-confirm step. Here, unlike the standalone page, **the photo is uploaded and kept**: it becomes the item's image via `POST /api/inventory/items/with-photo`, stored the same way a catalog-provider image is (deduplicated by SHA-256 checksum, served from `/api/media/{id}`) — just uploaded directly instead of downloaded from a URL, since there's no provider URL for a local photo.
 
 ### Architecture
 
@@ -308,9 +311,11 @@ Same pragmatic-hexagonal pattern as `ProductCatalogProvider` (catalog) and `Imag
 
 Everything Ollama-specific — HTTP request shaping (`OllamaApiClient`), the system prompt (`VisionAnalysisPrompt.kt`), response parsing and error translation (`OllamaVisionAdapter`) — lives in `infrastructure/ollama/` and nowhere else. `ImageAnalysisController` only ever sees `ImageAnalysisService`/`ImageAnalysisResult`.
 
+Wiring the analyzed photo into item creation reuses the existing image pipeline rather than inventing a second one: `ImageStorageService.storeUploaded(bytes, contentType, sourceProvider)` sits next to the existing `downloadAndStore(url, sourceProvider)`, sharing the same checksum-dedup/disk-write/`StoredImage` machinery — the only real difference is *where the bytes come from* (an uploaded `MultipartFile` vs. a downloaded URL), so `sourceUrl` is simply left `null` for an upload. A new endpoint, `POST /api/inventory/items/with-photo` (multipart: an `item` JSON part + an optional `image` file part), sits next to the existing JSON `POST /api/inventory/items` rather than replacing it — manual entry and catalog-search creation don't have a file to upload and keep using the plain JSON endpoint unchanged. `UploadedImageValidator` (real content-sniffing via `ImageIO`, not filename/Content-Type) moved from `imageanalysis/application/` to `shared/validation/` once it had two genuine callers (the image-analysis upload and this one) instead of one.
+
 ### Limitations
 
-- **Experimental, evaluation-only.** Not connected to catalog providers, item creation, or persistent image storage — by design, for this prototype.
+- **The standalone evaluation page never persists anything** (by design — see [Usage from GridMind](#usage-from-gridmind)); the item-creation path does persist the photo as the item's image.
 - **Occasionally still fails to produce valid JSON, even with `num_predict`/`repeat_penalty` tuning.** Observed directly during testing: for some images, the model still generates unusually long, repetitive output and gets cut off by `num_predict` before completing the JSON object — the request succeeds at the HTTP level (Ollama responds 200) but the response can't be parsed, and GridMind surfaces this as a clean "response could not be parsed" error rather than a crash. This is a real, observed limitation of schema-constrained decoding on a 3B model, not a hypothetical — worth watching for during evaluation, and one of the concrete things a larger model might improve on if this turns out to be the limiting factor.
 - **CPU inference is slow relative to a GPU** — see above for real measured numbers. Not suitable as-is for a bulk/batch workflow.
 - **WEBP is not accepted.** Only JPEG and PNG: the JDK's built-in `ImageIO` has no WEBP reader, and adding a plugin just for this prototype wasn't judged worth it — see `UploadedImageValidator`.
