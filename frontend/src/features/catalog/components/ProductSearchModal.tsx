@@ -4,12 +4,14 @@ import { Dialog, DialogContent, DialogTitle, IconButton, Stack } from '@mui/mate
 import type { Category } from '@/features/categories/types/Category'
 import { AnalyzeImageStep } from '@/features/imageanalysis/components/AnalyzeImageStep'
 import type { ImageAnalysisResult } from '@/features/imageanalysis/types/ImageAnalysis'
+import { suggestSearchQueries } from '@/features/imageanalysis/utils/suggestSearchQueries'
 import { toItemInput as imageAnalysisToItemInput } from '@/features/imageanalysis/utils/toItemInput'
 import {
   PrefilledItemConfirmStep,
   type CatalogImageSource,
 } from '@/features/inventory/components/PrefilledItemConfirmStep'
 import type { ItemInput } from '@/features/inventory/types/Item'
+import { CatalogMatchPicker } from './CatalogMatchPicker'
 import { CatalogSearchStep } from './CatalogSearchStep'
 import type { CatalogResult } from '../types/CatalogResult'
 
@@ -25,17 +27,23 @@ interface ProductSearchModalProps {
    * when arriving here from a keyword the image-analysis feature suggested elsewhere
    * (e.g. the manual item form's "Remplir avec IA"). */
   initialSearchQuery?: string
+  /** Opens straight into the confirm step for this already-picked result — used when the
+   * manual item form's automatic catalog-match picker already found and selected one, so
+   * there's no need to search again. */
+  initialCatalogResult?: CatalogResult | null
 }
 
 type Step =
   | { kind: 'search'; initialQuery?: string }
   | { kind: 'analyze-photo' }
+  | { kind: 'auto-catalog-match'; analysis: ImageAnalysisResult; queries: string[] }
   | { kind: 'confirm-catalog'; result: CatalogResult }
   | { kind: 'confirm-analysis'; result: ImageAnalysisResult }
 
 const TITLES: Record<Step['kind'], string> = {
   search: 'Rechercher un produit',
   'analyze-photo': 'Analyser une photo',
+  'auto-catalog-match': 'Correspondances trouvées',
   'confirm-catalog': "Confirmer l'objet",
   'confirm-analysis': "Confirmer l'objet",
 }
@@ -49,6 +57,7 @@ export function ProductSearchModal({
   onSubmitWithPhoto,
   onManualCreateRequest,
   initialSearchQuery,
+  initialCatalogResult,
 }: ProductSearchModalProps) {
   const [step, setStep] = useState<Step>({ kind: 'search' })
   const [photoFile, setPhotoFile] = useState<File | null>(null)
@@ -71,6 +80,12 @@ export function ProductSearchModal({
       setStep({ kind: 'search', initialQuery: initialSearchQuery })
     }
   }, [open, initialSearchQuery])
+
+  useEffect(() => {
+    if (open && initialCatalogResult) {
+      setStep({ kind: 'confirm-catalog', result: initialCatalogResult })
+    }
+  }, [open, initialCatalogResult])
 
   const handleClose = () => {
     setStep({ kind: 'search' })
@@ -123,7 +138,22 @@ export function ProductSearchModal({
             file={photoFile}
             previewUrl={photoPreviewUrl}
             onFileSelected={setPhotoFile}
-            onAnalyzed={(result) => setStep({ kind: 'confirm-analysis', result })}
+            onAnalyzed={(result) => {
+              const queries = suggestSearchQueries(result)
+              setStep(
+                queries.length > 0
+                  ? { kind: 'auto-catalog-match', analysis: result, queries }
+                  : { kind: 'confirm-analysis', result },
+              )
+            }}
+          />
+        )}
+
+        {open && step.kind === 'auto-catalog-match' && (
+          <CatalogMatchPicker
+            queries={step.queries}
+            onSelect={(result) => setStep({ kind: 'confirm-catalog', result })}
+            onSkip={() => setStep({ kind: 'confirm-analysis', result: step.analysis })}
           />
         )}
 

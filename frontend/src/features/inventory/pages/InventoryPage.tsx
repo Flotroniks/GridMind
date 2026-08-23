@@ -4,6 +4,7 @@ import { useToast } from '@/components/common/useToast'
 import * as categoryApi from '@/features/categories/api/categoryApi'
 import type { Category } from '@/features/categories/types/Category'
 import { ProductSearchModal } from '@/features/catalog/components/ProductSearchModal'
+import type { CatalogResult } from '@/features/catalog/types/CatalogResult'
 import type { CatalogImageSource } from '@/features/inventory/components/PrefilledItemConfirmStep'
 import { ApiError } from '@/lib/apiClient'
 import * as inventoryApi from '../api/inventoryApi'
@@ -47,9 +48,11 @@ export function InventoryPage() {
   const [creating, setCreating] = useState(false)
   const [searchingCatalog, setSearchingCatalog] = useState(false)
   const [catalogInitialQuery, setCatalogInitialQuery] = useState<string | undefined>(undefined)
+  const [catalogInitialResult, setCatalogInitialResult] = useState<CatalogResult | null>(null)
 
   const openCatalogSearch = () => {
     setCatalogInitialQuery(undefined)
+    setCatalogInitialResult(null)
     setSearchingCatalog(true)
   }
 
@@ -128,6 +131,11 @@ export function InventoryPage() {
 
   const handleSearchCatalogFromForm = (query: string) => {
     setCatalogInitialQuery(query)
+    setSearchingCatalog(true)
+  }
+
+  const handleCatalogResultSelectedFromForm = (result: CatalogResult) => {
+    setCatalogInitialResult(result)
     setSearchingCatalog(true)
   }
 
@@ -222,6 +230,7 @@ export function InventoryPage() {
         enablePhotoAnalysis
         onSubmitWithPhoto={handleCreateFromPhoto}
         onSearchCatalogRequest={handleSearchCatalogFromForm}
+        onCatalogResultSelected={handleCatalogResultSelectedFromForm}
       />
 
       <ProductSearchModal
@@ -233,6 +242,7 @@ export function InventoryPage() {
         onSubmitWithPhoto={handleCreateFromPhoto}
         onManualCreateRequest={handleManualCreateFromCatalog}
         initialSearchQuery={catalogInitialQuery}
+        initialCatalogResult={catalogInitialResult}
       />
 
       <ItemFormModal

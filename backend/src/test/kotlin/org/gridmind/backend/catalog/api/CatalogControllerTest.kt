@@ -64,4 +64,21 @@ class CatalogControllerTest {
             .andExpect(jsonPath("$[0].name").value("Wemos D1 Mini"))
             .andExpect(jsonPath("$[0].mpn").doesNotExist())
     }
+
+    @Test
+    fun `searchMany returns 200 with the mapped results`() {
+        `when`(productSearchService.searchMany(listOf("ESP32", "TFT display"))).thenReturn(
+            listOf(CatalogResult(name = "ESP32-S3", manufacturer = "Espressif", mpn = "ESP32-S3", sources = listOf("Fake"))),
+        )
+
+        mockMvc.perform(get("/api/catalog/search-many").param("queries", "ESP32", "TFT display"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$[0].name").value("ESP32-S3"))
+    }
+
+    @Test
+    fun `searchMany returns 400 when every query is blank`() {
+        mockMvc.perform(get("/api/catalog/search-many").param("queries", "  ", ""))
+            .andExpect(status().isBadRequest)
+    }
 }

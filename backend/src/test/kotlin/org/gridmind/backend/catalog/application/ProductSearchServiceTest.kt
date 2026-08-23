@@ -61,6 +61,36 @@ class ProductSearchServiceTest {
         assertTrue(service.search("nonexistent-part").isEmpty())
     }
 
+    @Test
+    fun `searchMany merges results from every query, deduplicating across queries`() {
+        val provider = object : ProductCatalogProvider {
+            override val name = "Fake"
+            override fun search(query: String): List<CatalogResult> = when (query) {
+                "ESP32" -> listOf(CatalogResult(name = "ESP32-S3", manufacturer = "Espressif", mpn = "ESP32-S3", sources = listOf("Fake")))
+                "TFT display board" -> listOf(
+                    CatalogResult(name = "ESP32-S3", manufacturer = "Espressif", mpn = "ESP32-S3", sources = listOf("Fake")),
+                    CatalogResult(name = "TFT Display", manufacturer = "Adafruit", mpn = "TFT-1", sources = listOf("Fake")),
+                )
+                else -> emptyList()
+            }
+        }
+
+        val service = ProductSearchService(listOf(provider))
+
+        val results = service.searchMany(listOf("ESP32", "TFT display board"))
+
+        assertEquals(2, results.size)
+        assertTrue(results.any { it.mpn == "ESP32-S3" })
+        assertTrue(results.any { it.mpn == "TFT-1" })
+    }
+
+    @Test
+    fun `searchMany ignores blank queries and returns an empty list when none remain`() {
+        val service = ProductSearchService(listOf(fakeProvider("Fake", emptyList())))
+
+        assertTrue(service.searchMany(listOf("  ", "")).isEmpty())
+    }
+
     private fun fakeProvider(providerName: String, results: List<CatalogResult>): ProductCatalogProvider =
         object : ProductCatalogProvider {
             override val name = providerName

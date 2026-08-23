@@ -3,7 +3,10 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'
 import UploadFileIcon from '@mui/icons-material/UploadFile'
 import { Alert, Box, Button, Chip, CircularProgress, MenuItem, Skeleton, Stack, TextField, Typography } from '@mui/material'
 import type { Category } from '@/features/categories/types/Category'
+import { CatalogMatchPickerDialog } from '@/features/catalog/components/CatalogMatchPickerDialog'
+import type { CatalogResult } from '@/features/catalog/types/CatalogResult'
 import * as imageAnalysisApi from '@/features/imageanalysis/api/imageAnalysisApi'
+import { suggestSearchQueries } from '@/features/imageanalysis/utils/suggestSearchQueries'
 import { toItemInput as imageAnalysisToItemInput } from '@/features/imageanalysis/utils/toItemInput'
 import { ApiError } from '@/lib/apiClient'
 import type { ItemInput } from '../types/Item'
@@ -26,6 +29,10 @@ interface ItemFormProps {
    * wants to search the catalog providers for it instead. Only meaningful together with
    * `enablePhotoAnalysis`. */
   onSearchCatalogRequest?: (query: string) => void
+  /** Called when the user picks a result from the automatic catalog-match pop-up that
+   * follows a "Remplir avec IA" analysis. Only meaningful together with
+   * `enablePhotoAnalysis`. */
+  onCatalogResultSelected?: (result: CatalogResult) => void
 }
 
 const emptyForm: ItemInput = {
@@ -65,6 +72,7 @@ export function ItemForm({
   enablePhotoAnalysis = false,
   onSubmitWithPhoto,
   onSearchCatalogRequest,
+  onCatalogResultSelected,
 }: ItemFormProps) {
   const [form, setForm] = useState<ItemInput>({ ...emptyForm, ...initialValue })
   const [tagsText, setTagsText] = useState((initialValue?.tags ?? []).join(', '))
@@ -76,6 +84,7 @@ export function ItemForm({
   const [analyzingPhoto, setAnalyzingPhoto] = useState(false)
   const [photoAnalysisError, setPhotoAnalysisError] = useState<string | null>(null)
   const [searchSuggestions, setSearchSuggestions] = useState<string[]>([])
+  const [autoMatchQueries, setAutoMatchQueries] = useState<string[]>([])
   const photoInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -126,6 +135,7 @@ export function ItemForm({
     setPhotoFile(selected)
     setPhotoAnalysisError(null)
     setSearchSuggestions([])
+    setAutoMatchQueries([])
   }
 
   const handleAnalyzePhoto = async () => {
@@ -144,6 +154,7 @@ export function ItemForm({
         notes: preferFilled(mapped.notes, current.notes),
       }))
       setSearchSuggestions(result.searchQueries)
+      setAutoMatchQueries(suggestSearchQueries(result))
     } catch (analyzeError) {
       setPhotoAnalysisError(
         analyzeError instanceof ApiError
@@ -238,6 +249,15 @@ export function ItemForm({
             </Stack>
           )}
         </Stack>
+      )}
+
+      {onCatalogResultSelected && (
+        <CatalogMatchPickerDialog
+          open={autoMatchQueries.length > 0}
+          queries={autoMatchQueries}
+          onSelect={onCatalogResultSelected}
+          onSkip={() => setAutoMatchQueries([])}
+        />
       )}
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2.5 }}>

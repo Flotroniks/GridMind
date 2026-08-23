@@ -1,5 +1,6 @@
 import { Dialog, DialogContent, DialogTitle } from '@mui/material'
 import type { Category } from '@/features/categories/types/Category'
+import type { CatalogResult } from '@/features/catalog/types/CatalogResult'
 import type { ItemInput } from '../types/Item'
 import { ItemForm } from './ItemForm'
 
@@ -15,6 +16,7 @@ interface ItemFormModalProps {
   enablePhotoAnalysis?: boolean
   onSubmitWithPhoto?: (input: ItemInput, photo: File) => Promise<void>
   onSearchCatalogRequest?: (query: string) => void
+  onCatalogResultSelected?: (result: CatalogResult) => void
 }
 
 export function ItemFormModal({
@@ -29,6 +31,7 @@ export function ItemFormModal({
   enablePhotoAnalysis,
   onSubmitWithPhoto,
   onSearchCatalogRequest,
+  onCatalogResultSelected,
 }: ItemFormModalProps) {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -59,6 +62,14 @@ export function ItemFormModal({
                 ? (query) => {
                     onClose()
                     onSearchCatalogRequest(query)
+                  }
+                : undefined
+            }
+            onCatalogResultSelected={
+              onCatalogResultSelected
+                ? (result) => {
+                    onClose()
+                    onCatalogResultSelected(result)
                   }
                 : undefined
             }

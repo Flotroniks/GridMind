@@ -18,6 +18,12 @@ class CatalogController(
         require(query.isNotBlank()) { "Query must not be blank." }
         return productSearchService.search(query).map(CatalogResultResponse::from)
     }
+
+    @GetMapping("/search-many")
+    fun searchMany(@RequestParam queries: List<String>): List<CatalogResultResponse> {
+        require(queries.any { it.isNotBlank() }) { "At least one non-blank query is required." }
+        return productSearchService.searchMany(queries).map(CatalogResultResponse::from)
+    }
 }
 
 data class CatalogImageResponse(
