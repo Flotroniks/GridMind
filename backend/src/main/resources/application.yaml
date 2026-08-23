@@ -46,6 +46,13 @@ gridmind:
       # to skip fetching/caching Adafruit's ~8MB product feed if you don't want it.
       enabled: ${ADAFRUIT_CATALOG_ENABLED:true}
       base-url: ${ADAFRUIT_BASE_URL:https://www.adafruit.com}
+    ebay:
+      base-url: ${EBAY_BASE_URL:https://api.ebay.com}
+      client-id: ${EBAY_CLIENT_ID:}
+      client-secret: ${EBAY_CLIENT_SECRET:}
+      # Which eBay marketplace to search — affects currency, language and which listings
+      # show up. See .env.example for how to pick a different one.
+      marketplace-id: ${EBAY_MARKETPLACE_ID:EBAY_US}
 
 logging:
   level:

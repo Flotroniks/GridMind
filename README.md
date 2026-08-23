@@ -109,11 +109,14 @@ Picking a result opens a normal, editable item form pre-filled from it — inclu
 | [DigiKey](https://developer.digikey.com) | Electronic components | **Supported** | OAuth2 (client credentials) | Yes | General electronic components with a real MPN |
 | [Mouser](https://www.mouser.com/api-hub/) | Electronic components | **Supported**¹ | API key | Yes | Second source, used to validate cross-provider grouping |
 | [Adafruit](https://www.adafruit.com/products_api) | Maker hardware | **Supported** | None (public API) | Yes | Dev boards, breakout boards and modules that don't have a real distributor MPN |
+| [eBay](https://developer.ebay.com/) | General marketplace | **Supported**² | OAuth2 (client credentials) | Yes | Anything not carried by a distributor — used/surplus parts, discontinued boards, hobbyist listings |
 | [Octopart / Nexar](https://nexar.com/api) | Electronic components aggregator | **Rejected** | OAuth2 | Yes | — its terms cap caching at 24h and forbid self-hosting images, which conflicts directly with this project's "keep images locally, indefinitely" goal |
 | [partsdb.io](https://www.partsdb.io/) | Electronic components (reichelt/Conrad, EU-focused) | **Planned** | API key | Not confirmed in its docs | Low-friction fallback (plain key, no OAuth, permissive terms) if DigiKey/Mouser coverage is ever insufficient |
 | [SparkFun](https://www.sparkfun.com/) | Maker hardware | **Rejected** | — | — | No public product-catalog API exists (only hookup-guide/GitHub docs for their designs) — the only way to pull their catalog would be scraping the site, which is fragile and outside what this project is willing to depend on |
 
 ¹ Code is implemented and its mapping is validated against Mouser's real API schema, but Mouser reviews every API key request manually (1-2 business days) — a freshly issued key won't return results until it's approved on Mouser's side. Nothing on the GridMind side needs to change once that happens.
+
+² Code is implemented and its request/response mapping is built directly from eBay's published OpenAPI schema for the Browse API — but unlike Mouser, no eBay developer credentials exist yet at all, so this one has never been exercised against the real, live API. Provide `EBAY_CLIENT_ID`/`EBAY_CLIENT_SECRET` (see below) to turn it on and confirm it end to end; the live test (`EbayApiClientLiveTest`) is ready and waiting for that.
 
 Each supported provider in detail:
 
@@ -122,6 +125,8 @@ Each supported provider in detail:
 **Mouser** — Search API v1, official API. Requires `MOUSER_API_KEY` (apply at [mouser.com/api-hub](https://www.mouser.com/en/api-hub/), Search API section — manual approval, 1-2 business days). Free tier: 1000 requests/day, 30/minute. Same data shape as DigiKey (name, manufacturer, MPN, description, category, datasheet, image).
 
 **Adafruit** — [Products API](https://www.adafruit.com/products_api), public, no key required. Structurally different from DigiKey/Mouser: it has no keyword-search endpoint, only a full-catalog dump (`/api/products`, ~5,500 products, ~8MB). `AdafruitApiClient` fetches that once and keeps it in memory for 12h, refetching when it goes stale; `AdafruitProductCatalogProvider` filters the cached list by name/MPN/model and caps results at 20. Returns name, manufacturer (defaults to "Adafruit" when the feed leaves it blank), Adafruit's own store SKU as the MPN (e.g. `ADA5800` — a stable per-product reference, not a manufacturer-issued MPN), category, and an image. No description and no datasheet URL: the feed has neither. Category names are resolved lazily per result via Adafruit's single-category endpoint (`/api/category/{id}`, small) rather than its full category list (`/api/categories`, ~28MB with every product embedded per category) — resolved names are cached indefinitely per category ID, and a failed lookup is simply omitted rather than blocking or failing the search. Discontinued/pending and virtual (non-physical) listings are filtered out before matching. On by default (no credentials to gate on); set `ADAFRUIT_CATALOG_ENABLED=false` to turn it off, e.g. to skip fetching/caching its feed in a constrained environment.
+
+**eBay** — [Buy Browse API](https://developer.ebay.com/api-docs/buy/browse/overview.html), official API, keyword search (`item_summary/search`). Requires `EBAY_CLIENT_ID` and `EBAY_CLIENT_SECRET` (get them at [developer.ebay.com](https://developer.ebay.com): sign in → My Account → Application Keys → create a keyset — use the **production** keyset, not sandbox, since sandbox only returns fake test listings). OAuth2 client-credentials, same shape as DigiKey but Basic-auth'd (`Authorization: Basic base64(clientId:clientSecret)`) rather than form-encoded, with scope `https://api.ebay.com/oauth/api_scope`. `EBAY_MARKETPLACE_ID` (default `EBAY_US`) selects which eBay marketplace is searched (currency, language, listings) — see `.env.example` for other values (`EBAY_GB`, `EBAY_DE`, `EBAY_FR`, ...).<br><br>eBay is a different kind of source from the others: it's a general marketplace, not a component distributor or a manufacturer's own catalog, so its results are marketplace listings, not canonical parts. Its search response carries no manufacturer/MPN field at all (only available, unreliably, via a separate per-item call this adapter doesn't make); `CatalogResult.manufacturer`/`mpn` being optional at the model level is what makes wiring this up possible without distorting anything — an eBay result is always its own, unmerged entry (see [Provider selection](#provider-selection)), never guessed into a distributor's part. `description` is eBay's own `shortDescription` field when present, else a "condition — price currency" fallback (e.g. `"Used — 12.99 EUR"`); `category` is resolved from the response's category list matched against its `leafCategoryIds` (no documented ordering guarantee on the category array itself, so array position alone isn't trusted). Capped at 10 results per search.
 
 ### Provider configuration
 
@@ -132,9 +137,12 @@ DIGIKEY_CLIENT_SECRET=
 MOUSER_API_KEY=
 
 # ADAFRUIT_CATALOG_ENABLED=false
+
+EBAY_CLIENT_ID=
+EBAY_CLIENT_SECRET=
 ```
 
-Copy these into your own `.env` (never commit real keys — `.env` is gitignored). See `.env.example` for the up-to-date list, including optional `DIGIKEY_BASE_URL`/`MOUSER_BASE_URL`/`ADAFRUIT_BASE_URL` overrides. A provider without credentials configured simply doesn't contribute any results — nothing else breaks, and no restart is needed for other features to keep working. Adafruit needs no credentials at all, so it's enabled by default.
+Copy these into your own `.env` (never commit real keys — `.env` is gitignored). See `.env.example` for the up-to-date list, including optional `DIGIKEY_BASE_URL`/`MOUSER_BASE_URL`/`ADAFRUIT_BASE_URL`/`EBAY_BASE_URL`/`EBAY_MARKETPLACE_ID` overrides. A provider without credentials configured simply doesn't contribute any results — nothing else breaks, and no restart is needed for other features to keep working. Adafruit needs no credentials at all, so it's enabled by default.
 
 ### Provider responsibilities
 
@@ -149,10 +157,13 @@ Provider-specific response types (e.g. `DigiKeyProduct`, `MouserPart`) never lea
 
 ### Provider selection
 
-Two different kinds of source exist conceptually:
+Three different kinds of source exist conceptually:
 
 - **Electronic component distributors** (DigiKey, Mouser) — precise, MPN-driven, huge catalogs, built for sourcing parts at scale.
-- **Maker/dev-board catalogs** (Adafruit) — better suited to hobbyist boards that don't always have a distributor-style MPN. Adafruit is implemented; SparkFun was evaluated and rejected for lack of a public catalog API (see the table above). See [Adding a new provider](#adding-a-new-provider) below for wiring up another one.
+- **Maker/dev-board catalogs** (Adafruit) — better suited to hobbyist boards that don't always have a distributor-style MPN. Adafruit is implemented; SparkFun was evaluated and rejected for lack of a public catalog API (see the table above).
+- **General marketplaces** (eBay) — not a catalog of canonical parts at all, but useful for the long tail a distributor won't carry: discontinued boards, used/surplus parts, one-off hobbyist listings. Results are never treated as authoritative the way a distributor's are — no manufacturer/MPN is asserted, and each listing stays its own entry rather than being merged with anything.
+
+See [Adding a new provider](#adding-a-new-provider) below for wiring up another one.
 
 `CatalogResult.mpn` is optional (`String?`), precisely so the common model doesn't force maker hardware into a distributor shape it doesn't have: a Wemos D1 Mini, a NodeMCU, an ESP32-CAM breakout, or a generic sensor module rarely carries a real MPN, and GridMind shouldn't require one to be searchable or inventoriable. `ProductGrouper` treats a missing MPN as "no reliable merge key" rather than a wildcard — two MPN-less results are never merged into each other, even with the same name and manufacturer, and an MPN-less result never absorbs (or is absorbed by) one that does have an MPN. This keeps grouping deterministic without guessing.
 
