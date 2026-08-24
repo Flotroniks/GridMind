@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { Box, CircularProgress, Stack, Typography } from '@mui/material'
+import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined'
+import { Chip, List, ListItem, ListItemIcon, ListItemText, Stack, Typography } from '@mui/material'
 import * as storageApi from '@/features/storage/api/storageApi'
 
 interface ItemStockLocationsProps {
@@ -13,38 +14,48 @@ export function ItemStockLocations({ itemId }: ItemStockLocationsProps) {
   })
 
   if (isLoading) {
-    return <CircularProgress size={16} />
+    return null
   }
 
   if (stock.length === 0) {
     return (
-      <Typography variant="body2" color="textSecondary">
-        Cet objet n'est stocké nulle part.
-      </Typography>
+      <Stack
+        spacing={1}
+        sx={{
+          alignItems: 'center',
+          py: 3,
+          px: 2,
+          textAlign: 'center',
+          border: '1px dashed',
+          borderColor: 'divider',
+          borderRadius: 2,
+        }}
+      >
+        <FolderOutlinedIcon sx={{ fontSize: 28, color: 'text.disabled' }} />
+        <Typography variant="body2" color="textSecondary">
+          Cet objet n'est stocké nulle part.
+        </Typography>
+      </Stack>
     )
   }
 
   return (
-    <Stack spacing={1}>
-      {stock.map((entry) => (
-        <Box
+    <List
+      disablePadding
+      sx={{ bgcolor: 'background.default', borderRadius: 2, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}
+    >
+      {stock.map((entry, index) => (
+        <ListItem
           key={entry.storageLocationId}
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            borderRadius: 2,
-            bgcolor: 'background.default',
-            px: 1.5,
-            py: 1,
-          }}
+          sx={{ py: 1, borderTop: index > 0 ? '1px solid' : 'none', borderColor: 'divider' }}
         >
-          <Typography>{entry.storageLocationName}</Typography>
-          <Typography color="primary" sx={{ fontWeight: 700 }}>
-            {entry.quantity}
-          </Typography>
-        </Box>
+          <ListItemIcon sx={{ minWidth: 36 }}>
+            <FolderOutlinedIcon sx={{ fontSize: 20, color: 'text.disabled' }} />
+          </ListItemIcon>
+          <ListItemText primary={entry.storageLocationName} />
+          <Chip label={entry.quantity} size="small" color="primary" />
+        </ListItem>
       ))}
-    </Stack>
+    </List>
   )
 }

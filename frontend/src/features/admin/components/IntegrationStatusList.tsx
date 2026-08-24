@@ -1,4 +1,4 @@
-import { Chip, Stack, Typography } from '@mui/material'
+import { Chip, List, ListItem, Typography } from '@mui/material'
 import type { IntegrationStatus } from '../types/SystemStatus'
 
 interface IntegrationStatusListProps {
@@ -7,13 +7,19 @@ interface IntegrationStatusListProps {
 
 export function IntegrationStatusList({ statuses }: IntegrationStatusListProps) {
   return (
-    <Stack spacing={1.5}>
-      {statuses.map((status) => (
-        <Stack
+    <List
+      disablePadding
+      sx={{ bgcolor: 'background.default', borderRadius: 2, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}
+    >
+      {statuses.map((status, index) => (
+        <ListItem
           key={status.name}
-          direction="row"
-          spacing={2}
-          sx={{ alignItems: 'center', py: 1, px: 1.5, borderRadius: 1.5, bgcolor: 'background.default' }}
+          sx={{
+            gap: 2,
+            py: 1.25,
+            borderTop: index > 0 ? '1px solid' : 'none',
+            borderColor: 'divider',
+          }}
         >
           <Chip
             label={status.configured ? 'Configuré' : 'Non configuré'}
@@ -28,8 +34,8 @@ export function IntegrationStatusList({ statuses }: IntegrationStatusListProps) 
               {status.detail}
             </Typography>
           )}
-        </Stack>
+        </ListItem>
       ))}
-    </Stack>
+    </List>
   )
 }

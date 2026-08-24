@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { Alert, Box, Chip, Stack, Typography } from '@mui/material'
+import SensorsIcon from '@mui/icons-material/Sensors'
+import { Alert, Chip, List, ListItem, Stack, Typography } from '@mui/material'
 import * as adminApi from '../api/adminApi'
 
 interface LocateMessage {
@@ -70,46 +71,61 @@ export function MqttLiveFeed() {
         </Alert>
       )}
 
-      {messages.length === 0 && connectionState === 'open' && (
-        <Box sx={{ py: 4, textAlign: 'center' }}>
-          <Typography color="textSecondary">En attente du premier message…</Typography>
-        </Box>
-      )}
-
-      <Stack spacing={1}>
-        {messages.map((message) => (
-          <Stack
-            key={message.id}
-            direction="row"
-            spacing={1.5}
-            sx={{ alignItems: 'center', py: 1, px: 1.5, borderRadius: 1.5, bgcolor: 'background.default' }}
-          >
-            <Typography variant="caption" color="textSecondary" sx={{ minWidth: 72, flexShrink: 0 }}>
-              {message.receivedAt.toLocaleTimeString()}
-            </Typography>
-            {message.locations.length === 0 ? (
-              <Typography variant="body2" color="textSecondary">
-                (aucun emplacement en surbrillance)
+      {messages.length === 0 ? (
+        <Stack
+          spacing={1}
+          sx={{
+            alignItems: 'center',
+            py: 4,
+            px: 2,
+            textAlign: 'center',
+            border: '1px dashed',
+            borderColor: 'divider',
+            borderRadius: 2,
+          }}
+        >
+          <SensorsIcon sx={{ fontSize: 32, color: 'text.disabled' }} />
+          <Typography variant="body2" color="textSecondary">
+            En attente du premier message…
+          </Typography>
+        </Stack>
+      ) : (
+        <List
+          disablePadding
+          sx={{ bgcolor: 'background.default', borderRadius: 2, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}
+        >
+          {messages.map((message, index) => (
+            <ListItem
+              key={message.id}
+              sx={{ gap: 1.5, py: 1, borderTop: index > 0 ? '1px solid' : 'none', borderColor: 'divider' }}
+            >
+              <Typography variant="caption" color="textSecondary" sx={{ minWidth: 72, flexShrink: 0 }}>
+                {message.receivedAt.toLocaleTimeString()}
               </Typography>
-            ) : (
-              <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
-                {message.locations.map((location) => (
-                  <Chip
-                    key={location.id}
-                    size="small"
-                    label={location.name}
-                    sx={{
-                      bgcolor: location.color,
-                      color: '#000',
-                      fontWeight: 600,
-                    }}
-                  />
-                ))}
-              </Stack>
-            )}
-          </Stack>
-        ))}
-      </Stack>
+              {message.locations.length === 0 ? (
+                <Typography variant="body2" color="textSecondary">
+                  (aucun emplacement en surbrillance)
+                </Typography>
+              ) : (
+                <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
+                  {message.locations.map((location) => (
+                    <Chip
+                      key={location.id}
+                      size="small"
+                      label={location.name}
+                      sx={{
+                        bgcolor: location.color,
+                        color: '#000',
+                        fontWeight: 600,
+                      }}
+                    />
+                  ))}
+                </Stack>
+              )}
+            </ListItem>
+          ))}
+        </List>
+      )}
     </Stack>
   )
 }

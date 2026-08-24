@@ -1,15 +1,19 @@
 import { useEffect, useState } from 'react'
+import AddIcon from '@mui/icons-material/Add'
 import DeleteOutlineIcon from '@mui/icons-material/Delete'
-import EditIcon from '@mui/icons-material/Edit'
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
+import LabelOutlinedIcon from '@mui/icons-material/LabelOutlined'
 import {
   Alert,
-  Box,
   Button,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   IconButton,
+  List,
+  ListItem,
+  ListItemIcon,
   Stack,
   TextField,
   Typography,
@@ -104,46 +108,72 @@ export function CategoryManager() {
           fullWidth
           onKeyDown={(event) => event.key === 'Enter' && void handleCreate()}
         />
-        <Button variant="outlined" onClick={() => void handleCreate()} sx={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => void handleCreate()}
+          sx={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+        >
           Ajouter
         </Button>
       </Stack>
 
-      <Stack spacing={1}>
-        {categories.map((category) => (
-          <Stack
-            key={category.id}
-            direction="row"
-            spacing={1}
-            sx={{ alignItems: 'center', py: 0.5, px: 1.5, borderRadius: 1.5, bgcolor: 'background.default' }}
-          >
-            {editingId === category.id ? (
-              <TextField
-                size="small"
-                value={editingName}
-                onChange={(event) => setEditingName(event.target.value)}
-                autoFocus
-                fullWidth
-                onKeyDown={(event) => event.key === 'Enter' && void handleRename(category.id)}
-                onBlur={() => void handleRename(category.id)}
-              />
-            ) : (
-              <Typography sx={{ flexGrow: 1 }}>{category.name}</Typography>
-            )}
-            <IconButton size="small" onClick={() => startEditing(category)} aria-label="Renommer">
-              <EditIcon fontSize="small" />
-            </IconButton>
-            <IconButton size="small" color="error" onClick={() => setDeleteTarget(category)} aria-label="Supprimer">
-              <DeleteOutlineIcon fontSize="small" />
-            </IconButton>
-          </Stack>
-        ))}
-        {categories.length === 0 && (
-          <Box sx={{ py: 3, textAlign: 'center' }}>
-            <Typography color="textSecondary">Aucune catégorie pour l'instant.</Typography>
-          </Box>
-        )}
-      </Stack>
+      {categories.length === 0 ? (
+        <Stack
+          spacing={1}
+          sx={{
+            alignItems: 'center',
+            py: 4,
+            px: 2,
+            textAlign: 'center',
+            border: '1px dashed',
+            borderColor: 'divider',
+            borderRadius: 2,
+          }}
+        >
+          <LabelOutlinedIcon sx={{ fontSize: 32, color: 'text.disabled' }} />
+          <Typography variant="body2" color="textSecondary">
+            Aucune catégorie pour l'instant.
+          </Typography>
+        </Stack>
+      ) : (
+        <List
+          disablePadding
+          sx={{ bgcolor: 'background.default', borderRadius: 2, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}
+        >
+          {categories.map((category, index) => (
+            <ListItem
+              key={category.id}
+              sx={{ py: 1, gap: 1, borderTop: index > 0 ? '1px solid' : 'none', borderColor: 'divider' }}
+            >
+              {editingId === category.id ? (
+                <TextField
+                  size="small"
+                  value={editingName}
+                  onChange={(event) => setEditingName(event.target.value)}
+                  autoFocus
+                  fullWidth
+                  onKeyDown={(event) => event.key === 'Enter' && void handleRename(category.id)}
+                  onBlur={() => void handleRename(category.id)}
+                />
+              ) : (
+                <>
+                  <ListItemIcon sx={{ minWidth: 36 }}>
+                    <LabelOutlinedIcon sx={{ fontSize: 20, color: 'text.disabled' }} />
+                  </ListItemIcon>
+                  <Typography sx={{ flexGrow: 1 }}>{category.name}</Typography>
+                </>
+              )}
+              <IconButton size="small" onClick={() => startEditing(category)} aria-label="Renommer" sx={{ color: 'text.disabled' }}>
+                <EditOutlinedIcon fontSize="small" />
+              </IconButton>
+              <IconButton size="small" onClick={() => setDeleteTarget(category)} aria-label="Supprimer" sx={{ color: 'text.disabled' }}>
+                <DeleteOutlineIcon fontSize="small" />
+              </IconButton>
+            </ListItem>
+          ))}
+        </List>
+      )}
 
       <Dialog open={deleteTarget !== null} onClose={() => setDeleteTarget(null)}>
         <DialogTitle>Supprimer la catégorie</DialogTitle>
