@@ -73,18 +73,21 @@ docker compose exec ollama ollama pull qwen2.5vl:7b
 - **Local image storage**: an image picked during product search is downloaded once and kept on disk, independent of the provider or an internet connection
 - **Image analysis (experimental)**: photograph a part and get a best-effort identification from a local vision model, either as a standalone evaluation or as an alternative to manual entry when adding an item (pre-fills the form, photo becomes the item's image) — see [Local AI / Image analysis](#local-ai--image-analysis)
 - **Locate (experimental)**: the inventory search bar publishes matching items' storage locations over MQTT as you type, letter by letter — a "pick to light" trigger for whatever's listening on the broker (out of scope here — see [Locate / MQTT](#locate--mqtt))
+- **Admin interface**: a `/admin` area — a live status dashboard for every external integration (catalog providers, Ollama, MQTT), category management (rename/delete), and a live view of the MQTT locate topic — see [Admin interface](#admin-interface)
 
 ## Backend API
 
 - `GET/POST /api/inventory/items`, `GET/PATCH/DELETE /api/inventory/items/{id}` — inventory items (`search`, `categoryId`, `manufacturer` query filters)
 - `POST /api/inventory/items/with-photo` — create an item with a locally uploaded photo as its image (multipart: `item` JSON part + optional `image` file part), used by the image-analysis "add from a photo" flow
-- `GET/POST /api/categories` — categories
+- `GET/POST/PATCH/DELETE /api/categories`, `.../{id}` — categories (rename/delete added for the admin interface — see [Admin interface](#admin-interface))
 - `GET/POST/DELETE /api/storage/locations`, `GET /api/storage/locations/{id}/contents` — storage hierarchy
 - `GET /api/storage/items/{itemId}/stock`, `POST /api/storage/stock/allocate`, `POST /api/storage/stock/move` — stock allocation and movement
 - `GET /api/catalog/search?query=` — search configured product catalog providers, grouped and normalized (see below)
 - `GET /api/media/{id}` — serves a locally stored image by id
 - `POST /api/image-analysis/analyze` — multipart image upload, analyzed locally via Ollama (see [Local AI / Image analysis](#local-ai--image-analysis))
 - `POST /api/locate?query=` — publishes an MQTT locate highlight for whatever currently matches `query` (see [Locate / MQTT](#locate--mqtt))
+- `GET /api/admin/status` — point-in-time status of every external integration (see [Admin interface](#admin-interface))
+- `GET /api/admin/locate/stream` — Server-Sent Events stream relaying the `gridmind/locate` MQTT topic to the browser
 
 ## Project structure
 
@@ -96,6 +99,7 @@ backend/src/main/kotlin/org/gridmind/backend/
 ├── catalog/         # external product search: domain, application, api, provider adapters
 ├── imageanalysis/    # local image analysis prototype: domain, application, api, Ollama adapter
 ├── locate/           # pick-to-light trigger: domain, application, api, MQTT adapter
+├── admin/            # admin-only diagnostics: status dashboard, MQTT live-view relay
 └── shared/           # cross-cutting config and error handling
 
 backend/src/main/resources/db/migration/   # Flyway migrations
@@ -108,7 +112,8 @@ frontend/src/
 │   ├── storage/
 │   ├── catalog/         # product search UI (search step + confirmation step)
 │   ├── imageanalysis/   # image-analysis prototype UI
-│   └── locate/          # locate API client (no UI of its own — see Locate / MQTT)
+│   ├── locate/          # locate API client (no UI of its own — see Locate / MQTT)
+│   └── admin/           # /admin page: status dashboard, category management, MQTT live view
 ├── components/common/   # shared UI (toasts, theme toggle, language switcher, error boundary)
 ├── layouts/
 └── theme/               # MUI theme + light/dark color mode
@@ -412,6 +417,35 @@ Same pragmatic-hexagonal pattern as `ImageAnalysisPort`/`ProductCatalogProvider`
 - **The dev broker config is intentionally insecure** (`allow_anonymous true`, no TLS) — acceptable only because it's never exposed beyond the developer's own machine/network (`mosquitto/mosquitto.conf` says so directly). Revisit before ever exposing it further.
 - **No retained messages, no last-known-state on reconnect** — a subscriber that connects after a publish has already happened sees nothing until the next search keystroke, not "whatever was last highlighted."
 - **Not covered by an automated live test against a real broker** (unlike, say, `MouserApiClientLiveTest` for an external API) — verified manually with `mosquitto_sub` during development instead; see [Docker setup](#docker-setup-1) above to reproduce that.
+
+## Admin interface
+
+**Experimental.** A `/admin` page (linked from the top nav) for technical/power-user tasks that don't belong in day-to-day inventory use: a live status dashboard for every external integration, category management, and a live view of the MQTT locate topic. No access control of any kind yet — same as the rest of the app (see [Limitations](#limitations-2) below, and `ROADMAP.md`'s Phase 15 for the auth plan this is deliberately deferring to).
+
+### Status dashboard
+
+A point-in-time read of every external integration, refreshed on demand (never automatically polled):
+
+- **Catalog providers** (DigiKey/Mouser/Adafruit/eBay) — "configured" here means the provider actually registered as a Spring bean, i.e. its credentials passed the same `@ConditionalOnProperty`/`@ConditionalOnExpression` gate `ProductSearchService` itself relies on (see [Product catalog providers](#product-catalog-providers)). No live network call is made — checking real connectivity would burn API quota just to render a dashboard, so this only ever answers "is it configured," not "is DigiKey up right now."
+- **Ollama** — a live call to its own `/api/tags` endpoint, independent of `ImageAnalysisPort`/`OllamaVisionAdapter` (a diagnostic concern, not the analysis use case). Reports unreachable, reachable-but-model-missing, or reachable-with-model-loaded — three genuinely different states worth telling apart when something's wrong.
+- **MQTT** — `LocatePublisherPort.isConnected()`, which actively attempts a connection if the publisher hasn't connected yet (rather than just reading cached state), so the dashboard gives a real answer even before anyone has searched for anything.
+
+Nothing here is on any business path: `SystemStatusService` only ever gets called by `GET /api/admin/status`, and a failing check never affects search, image analysis, or locate — it just reports that something else would fail.
+
+### Category management
+
+Rename and delete, on top of the create/list that already existed. Deleting is safe by construction, not by application-level checking: `inventory_items.category_id` is `ON DELETE SET NULL` (see the V3 migration), so a deleted category's items simply become uncategorized — no "category in use" blocking error the way deleting a storage location has.
+
+### MQTT live view
+
+Raw MQTT isn't reachable from a browser tab, so `MqttLocateFeedBroadcaster` (in `admin/infrastructure/mqtt/`) subscribes to `gridmind/locate` once, itself, and fans that single subscription out to however many admin tabs are currently open via Server-Sent Events (`GET /api/admin/locate/stream`) — one shared MQTT connection, not one per browser tab. Connects lazily on the first registered tab, same reasoning as `MqttLocatePublisher`: a broker that isn't up yet shouldn't fail application boot. Verified live: typing in the inventory search bar from one tab produces color-coded location chips appearing in real time in a separate `/admin` tab.
+
+### Limitations
+
+- **No authentication** — the whole app, this page included, is wide open. Deliberately paused, not forgotten: see `ROADMAP.md`'s Phase 15 for the agreed plan (whole-app login, single admin account, JWT) once picked back up.
+- **Status dashboard is pull, not push** — no auto-refresh, no live updates; press "Actualiser" to see current state.
+- **Catalog provider status never live-checks the actual API** — see above; it can go stale relative to e.g. an expired/revoked key until the next real search happens to fail.
+- **Bulk inventory operations were explicitly scoped out of this round** (CSV import/export, mass edit/delete) — noted in `ROADMAP.md` as deferred, not abandoned.
 
 ## Notes
 

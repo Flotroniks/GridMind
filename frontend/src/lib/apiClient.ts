@@ -1,4 +1,4 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL
+export const BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 /** Turns a relative API path (e.g. an item's `imageUrl`) into a fetchable absolute URL. */
 export function resolveMediaUrl(path: string | null | undefined): string | null {

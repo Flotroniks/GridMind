@@ -11,4 +11,8 @@ import org.gridmind.backend.locate.domain.LocateHighlight
  */
 interface LocatePublisherPort {
     fun publish(highlights: List<LocateHighlight>)
+
+    /** Whether the broker is currently reachable — used only for diagnostics (the admin
+     * status dashboard), never on the search path itself. */
+    fun isConnected(): Boolean
 }

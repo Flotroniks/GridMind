@@ -45,6 +45,16 @@ class MqttLocatePublisher(
         }
     }
 
+    /** Actively attempts a connection if not already connected, rather than just reading
+     * cached state — this is used for the admin status dashboard, where "not connected
+     * because nothing has searched yet" and "genuinely unreachable" need to be told apart. */
+    override fun isConnected(): Boolean =
+        try {
+            connectedClient().isConnected
+        } catch (ex: Exception) {
+            false
+        }
+
     @Synchronized
     private fun connectedClient(): MqttClient {
         val existing = client

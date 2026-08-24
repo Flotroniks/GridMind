@@ -50,6 +50,14 @@ export function MainLayout() {
             >
               Analyse IA
             </Button>
+            <Button
+              component={NavLink}
+              to="/admin"
+              color="inherit"
+              sx={{ '&.active': { bgcolor: 'action.selected' } }}
+            >
+              Admin
+            </Button>
           </Stack>
           <LanguageSwitcher />
           <ThemeToggle />

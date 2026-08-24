@@ -759,10 +759,10 @@ Physical drawer/bin
 
 ## Features
 
-- [ ] MQTT connection
+- [x] MQTT connection
 - [ ] Controller registration
 - [ ] Location-to-LED mapping
-- [ ] Locate command
+- [x] Locate command
 - [ ] LED timeout
 - [ ] Device availability status
 
@@ -778,9 +778,55 @@ Locate
 LED flashes on drawer
 ```
 
+## Status (implemented ahead of the suggested order, on the `implementation-mqtt` branch)
+
+Built so far: a local Mosquitto broker (`compose.yaml`), a `locate` backend module
+(`LocateService` + `LocatePublisherPort`/`MqttLocatePublisher`) that turns the *existing*
+inventory search-as-you-type into an automatic MQTT publish — no separate "Locate" button,
+searching *is* the locate command. The message is always the complete highlight state
+(`{"locations":[{"id","name","color"}]}`) on one fixed topic (`gridmind/locate`), so a
+subscriber never needs delta logic. See the README's "Locate / MQTT" section for the full
+design and the trade-offs.
+
+Not built (deliberately out of scope — "stop at the MQTT server"): any firmware/ESP32
+side, controller registration, or a location↔LED/GPIO mapping. Today the message identifies
+locations by their existing `StorageLocation.id` — a device is expected to know which id(s)
+it's responsible for as a one-time provisioning fact, not something GridMind's domain models
+(see the README section for why that split is intentional, not a gap).
+
 ## Done when
 
 Selecting an item in GridMind can physically indicate where it is stored.
+
+---
+
+# Admin interface (started, ahead of the suggested order — `implementation-mqtt` branch)
+
+## Goal
+
+A technical/power-user area at `/admin`, separate from day-to-day inventory use.
+
+## Built
+
+- [x] System status dashboard — read-only, at-a-glance: which catalog providers
+  (DigiKey/Mouser/Adafruit/eBay) are configured, whether Ollama is reachable with the
+  configured model available, whether the MQTT broker is connected.
+- [x] Category management — rename and delete, on top of the create/list that already
+  existed (`CategoryService`/`CategoryController`). Deleting is safe by design:
+  `inventory_items.category_id` is `ON DELETE SET NULL`, so items just become
+  uncategorized rather than being blocked or cascaded away.
+- [x] MQTT live view — the `gridmind/locate` topic relayed to the browser over
+  Server-Sent Events (`MqttLocateFeedBroadcaster` + `AdminLocateStreamController`), since
+  raw MQTT isn't reachable from a browser tab. Shows highlight events in real time as
+  someone types in the inventory search bar.
+
+## Deferred
+
+- [ ] Bulk inventory operations (CSV import/export, bulk edit/delete) — explicitly
+  postponed to keep this round of admin work scoped; picked up again once the rest of the
+  admin interface has been used for a while.
+- [ ] Authentication (see Phase 15 below) — the admin interface currently has no access
+  control at all, same as the rest of the app.
 
 ---
 
@@ -825,6 +871,17 @@ Possible features:
 - [ ] Roles if genuinely necessary
 
 Do not introduce OAuth2, Keycloak or complex identity infrastructure prematurely.
+
+## Decided, not yet implemented (paused deliberately — picked back up as its own phase)
+
+- **Scope**: the whole application goes behind login, not just `/admin` — currently
+  everything is `permitAll` in `SecurityConfig`, including the newly-added admin interface.
+- **Accounts**: a single admin account (personal, self-hosted use), not a full multi-user
+  system with roles — credentials stored hashed in the database, extensible to more
+  accounts later without a redesign.
+- **Mechanism**: real login issuing a JWT (not just a shared password) — a login endpoint,
+  Spring Security reconfigured to require a valid token on every route, a login screen on
+  the frontend.
 
 ## Done when
 

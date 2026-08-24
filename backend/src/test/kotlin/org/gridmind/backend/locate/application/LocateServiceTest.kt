@@ -115,5 +115,7 @@ class LocateServiceTest {
             lastPublished = highlights
             callCount++
         }
+
+        override fun isConnected(): Boolean = true
     }
 }

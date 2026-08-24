@@ -13,3 +13,14 @@ export function createCategory(name: string): Promise<Category> {
     body: JSON.stringify({ name }),
   })
 }
+
+export function renameCategory(id: number, name: string): Promise<Category> {
+  return fetchJson<Category>(`${BASE_PATH}/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ name }),
+  })
+}
+
+export function deleteCategory(id: number): Promise<void> {
+  return fetchJson<void>(`${BASE_PATH}/${id}`, { method: 'DELETE' })
+}
