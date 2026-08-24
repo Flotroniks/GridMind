@@ -2,6 +2,7 @@ package org.gridmind.backend.catalog.infrastructure.provider.digikey
 
 import org.gridmind.backend.catalog.domain.CatalogImage
 import org.gridmind.backend.catalog.domain.CatalogResult
+import org.gridmind.backend.catalog.application.CatalogProviderHealthCheck
 import org.gridmind.backend.catalog.application.ProductCatalogProvider
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression
@@ -22,7 +23,7 @@ class DigiKeyProductCatalogProvider(
     @Value("\${gridmind.catalog.digikey.base-url}") baseUrl: String,
     @Value("\${gridmind.catalog.digikey.client-id}") clientId: String,
     @Value("\${gridmind.catalog.digikey.client-secret}") clientSecret: String,
-) : ProductCatalogProvider {
+) : ProductCatalogProvider, CatalogProviderHealthCheck {
 
     override val name = "DigiKey"
 
@@ -30,6 +31,8 @@ class DigiKeyProductCatalogProvider(
 
     override fun search(query: String): List<CatalogResult> =
         client.searchKeyword(query).products.mapNotNull { it.toCatalogResult(name) }
+
+    override fun checkHealth(): Boolean = client.isReachable()
 }
 
 /**

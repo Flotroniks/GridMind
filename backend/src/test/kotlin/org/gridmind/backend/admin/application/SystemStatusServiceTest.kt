@@ -1,5 +1,6 @@
 package org.gridmind.backend.admin.application
 
+import org.gridmind.backend.catalog.application.CatalogProviderHealthCheck
 import org.gridmind.backend.catalog.application.ProductCatalogProvider
 import org.gridmind.backend.catalog.domain.CatalogResult
 import org.gridmind.backend.locate.application.LocatePublisherPort
@@ -26,6 +27,34 @@ class SystemStatusServiceTest {
         assertTrue(status.getValue("Adafruit").configured)
         assertFalse(status.getValue("Mouser").configured)
         assertFalse(status.getValue("eBay").configured)
+    }
+
+    @Test
+    fun `uses the health check when a provider implements one, instead of presence alone`() {
+        val service = SystemStatusService(
+            catalogProviders = listOf(fakeHealthCheckedProvider("DigiKey", healthy = false)),
+            ollamaDiagnosticsPort = FakeOllamaDiagnosticsPort(emptyList()),
+            locatePublisherPort = FakePublisher(connected = true),
+            configuredOllamaModel = "qwen2.5vl:7b",
+        )
+
+        val digikey = service.currentStatus().catalogProviders.first { it.name == "DigiKey" }
+
+        assertFalse(digikey.configured)
+    }
+
+    @Test
+    fun `reports a health-checked provider configured when it's actually reachable`() {
+        val service = SystemStatusService(
+            catalogProviders = listOf(fakeHealthCheckedProvider("eBay", healthy = true)),
+            ollamaDiagnosticsPort = FakeOllamaDiagnosticsPort(emptyList()),
+            locatePublisherPort = FakePublisher(connected = true),
+            configuredOllamaModel = "qwen2.5vl:7b",
+        )
+
+        val ebay = service.currentStatus().catalogProviders.first { it.name == "eBay" }
+
+        assertTrue(ebay.configured)
     }
 
     @Test
@@ -70,6 +99,13 @@ class SystemStatusServiceTest {
         object : ProductCatalogProvider {
             override val name = providerName
             override fun search(query: String): List<CatalogResult> = emptyList()
+        }
+
+    private fun fakeHealthCheckedProvider(providerName: String, healthy: Boolean): ProductCatalogProvider =
+        object : ProductCatalogProvider, CatalogProviderHealthCheck {
+            override val name = providerName
+            override fun search(query: String): List<CatalogResult> = emptyList()
+            override fun checkHealth(): Boolean = healthy
         }
 
     private class FakeOllamaDiagnosticsPort(private val models: List<String>) : OllamaDiagnosticsPort {

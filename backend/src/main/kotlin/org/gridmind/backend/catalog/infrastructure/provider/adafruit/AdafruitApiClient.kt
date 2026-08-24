@@ -36,6 +36,17 @@ class AdafruitApiClient(baseUrl: String) {
 
     private val categoryNameCache = ConcurrentHashMap<String, String>()
 
+    /** Verifies connectivity by reusing [allProducts]'s own cache — free in effect for
+     * repeated calls, since a real fetch only happens once per [CATALOG_TTL] regardless
+     * of how often this is called. No API key involved (Adafruit's API is public), so
+     * there's no separate "cheap auth-only" endpoint to check instead. Never throws. */
+    fun isReachable(): Boolean =
+        try {
+            allProducts().isNotEmpty()
+        } catch (ex: Exception) {
+            false
+        }
+
     /** Reuses the in-memory catalog until it goes stale; refetches the full list once it does. */
     fun allProducts(): List<AdafruitProduct> {
         cachedCatalog?.let { if (it.isStillValid()) return it.products }

@@ -1,5 +1,6 @@
 package org.gridmind.backend.catalog.infrastructure.provider.adafruit
 
+import org.gridmind.backend.catalog.application.CatalogProviderHealthCheck
 import org.gridmind.backend.catalog.application.ProductCatalogProvider
 import org.gridmind.backend.catalog.domain.CatalogImage
 import org.gridmind.backend.catalog.domain.CatalogResult
@@ -22,7 +23,7 @@ import org.springframework.stereotype.Component
 )
 class AdafruitProductCatalogProvider(
     @Value("\${gridmind.catalog.adafruit.base-url}") baseUrl: String,
-) : ProductCatalogProvider {
+) : ProductCatalogProvider, CatalogProviderHealthCheck {
 
     override val name = "Adafruit"
 
@@ -38,6 +39,8 @@ class AdafruitProductCatalogProvider(
                 product.toCatalogResult(name, categoryName)
             }
             .toList()
+
+    override fun checkHealth(): Boolean = client.isReachable()
 
     companion object {
         private const val MAX_RESULTS = 20

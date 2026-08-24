@@ -424,13 +424,13 @@ Same pragmatic-hexagonal pattern as `ImageAnalysisPort`/`ProductCatalogProvider`
 
 ### Status dashboard
 
-A point-in-time read of every external integration, refreshed on demand (never automatically polled):
+A read of every external integration, refreshed on load, on demand ("Actualiser"), and automatically every 2 minutes while the tab is open:
 
-- **Catalog providers** (DigiKey/Mouser/Adafruit/eBay) — "configured" here means the provider actually registered as a Spring bean, i.e. its credentials passed the same `@ConditionalOnProperty`/`@ConditionalOnExpression` gate `ProductSearchService` itself relies on (see [Product catalog providers](#product-catalog-providers)). No live network call is made — checking real connectivity would burn API quota just to render a dashboard, so this only ever answers "is it configured," not "is DigiKey up right now."
+- **Catalog providers** (DigiKey/Mouser/Adafruit/eBay) — genuinely live where the provider's API offers a way to check that isn't metered like a real search: DigiKey and eBay both document their OAuth2 client-credentials token endpoint as separate from their per-day search quota, so `checkHealth()` just fetches a token (`DigiKeyApiClient.isReachable()`/`EbayApiClient.isReachable()`) — and that token is cached for its whole lifetime (~2h), so polling every 2 minutes costs one real network call roughly every 2 hours, not every poll. Adafruit has no auth step at all (public API) and its own 12h in-memory catalog cache, so its check just confirms that cache is populated. **Mouser has no such endpoint** — its only API call is the metered keyword search itself — so it deliberately stays "configured" (credentials present, from the same `@ConditionalOnProperty`/`@ConditionalOnExpression` gate `ProductSearchService` relies on) without a live check, rather than spending real search quota just to render a dashboard. This distinction is modeled as an optional `CatalogProviderHealthCheck` interface (`catalog/application/`) a provider implements only when it has a free way to verify itself — `SystemStatusService` checks `provider is CatalogProviderHealthCheck` and falls back to presence-only for the ones that don't.
 - **Ollama** — a live call to its own `/api/tags` endpoint, independent of `ImageAnalysisPort`/`OllamaVisionAdapter` (a diagnostic concern, not the analysis use case). Reports unreachable, reachable-but-model-missing, or reachable-with-model-loaded — three genuinely different states worth telling apart when something's wrong.
 - **MQTT** — `LocatePublisherPort.isConnected()`, which actively attempts a connection if the publisher hasn't connected yet (rather than just reading cached state), so the dashboard gives a real answer even before anyone has searched for anything.
 
-Nothing here is on any business path: `SystemStatusService` only ever gets called by `GET /api/admin/status`, and a failing check never affects search, image analysis, or locate — it just reports that something else would fail.
+Nothing here is on any business path: `SystemStatusService` only ever gets called by `GET /api/admin/status`, and a failing check never affects search, image analysis, or locate — it just reports that something else would fail. The frontend's auto-refresh (`SystemStatusPanel`, `setInterval` every 120s) is silent — it never re-shows the loading spinner or flashes the panel empty, only the initial load and a manual "Actualiser" click do that.
 
 ### Category management
 
@@ -443,8 +443,8 @@ Raw MQTT isn't reachable from a browser tab, so `MqttLocateFeedBroadcaster` (in 
 ### Limitations
 
 - **No authentication** — the whole app, this page included, is wide open. Deliberately paused, not forgotten: see `ROADMAP.md`'s Phase 15 for the agreed plan (whole-app login, single admin account, JWT) once picked back up.
-- **Status dashboard is pull, not push** — no auto-refresh, no live updates; press "Actualiser" to see current state.
-- **Catalog provider status never live-checks the actual API** — see above; it can go stale relative to e.g. an expired/revoked key until the next real search happens to fail.
+- **Status dashboard polls, it doesn't push** — auto-refreshes every 2 minutes while the tab is open, not on a server-pushed event; between polls (or with the tab closed) it can be up to 2 minutes stale.
+- **Mouser's status is presence-only, not live** — see above; a revoked/expired Mouser key would only surface as "configured" until an actual search fails, since there's no free endpoint to check it against.
 - **Bulk inventory operations were explicitly scoped out of this round** (CSV import/export, mass edit/delete) — noted in `ROADMAP.md` as deferred, not abandoned.
 
 ## Notes

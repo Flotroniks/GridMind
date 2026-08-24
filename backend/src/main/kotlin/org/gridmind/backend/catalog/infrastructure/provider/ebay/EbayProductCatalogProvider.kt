@@ -1,5 +1,6 @@
 package org.gridmind.backend.catalog.infrastructure.provider.ebay
 
+import org.gridmind.backend.catalog.application.CatalogProviderHealthCheck
 import org.gridmind.backend.catalog.application.ProductCatalogProvider
 import org.gridmind.backend.catalog.domain.CatalogImage
 import org.gridmind.backend.catalog.domain.CatalogResult
@@ -23,7 +24,7 @@ class EbayProductCatalogProvider(
     @Value("\${gridmind.catalog.ebay.client-id}") clientId: String,
     @Value("\${gridmind.catalog.ebay.client-secret}") clientSecret: String,
     @Value("\${gridmind.catalog.ebay.marketplace-id}") marketplaceId: String,
-) : ProductCatalogProvider {
+) : ProductCatalogProvider, CatalogProviderHealthCheck {
 
     override val name = "eBay"
 
@@ -31,6 +32,8 @@ class EbayProductCatalogProvider(
 
     override fun search(query: String): List<CatalogResult> =
         client.searchKeyword(query).itemSummaries.mapNotNull { it.toCatalogResult(name) }
+
+    override fun checkHealth(): Boolean = client.isReachable()
 }
 
 /**

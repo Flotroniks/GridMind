@@ -28,4 +28,17 @@ class EbayApiClientLiveTest {
 
         assertTrue(response.itemSummaries.isNotEmpty(), "Expected at least one item from the real search.")
     }
+
+    @Test
+    fun `isReachable succeeds against the real token endpoint`() {
+        val client = EbayApiClient(
+            baseUrl = System.getenv("EBAY_BASE_URL") ?: "https://api.ebay.com",
+            clientId = System.getenv("EBAY_CLIENT_ID"),
+            clientSecret = System.getenv("EBAY_CLIENT_SECRET")
+                ?: error("EBAY_CLIENT_SECRET must be set alongside EBAY_CLIENT_ID."),
+            marketplaceId = System.getenv("EBAY_MARKETPLACE_ID") ?: "EBAY_US",
+        )
+
+        assertTrue(client.isReachable())
+    }
 }

@@ -21,4 +21,11 @@ class AdafruitApiClientLiveTest {
 
         assertTrue(products.size > 1_000, "Expected several thousand products, got ${products.size}.")
     }
+
+    @Test
+    fun `isReachable succeeds against the real public API`() {
+        val client = AdafruitApiClient(baseUrl = System.getenv("ADAFRUIT_BASE_URL") ?: "https://www.adafruit.com")
+
+        assertTrue(client.isReachable())
+    }
 }

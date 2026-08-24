@@ -28,4 +28,16 @@ class DigiKeyApiClientLiveTest {
 
         assertTrue(response.products.isNotEmpty(), "Expected at least one product from the sandbox search.")
     }
+
+    @Test
+    fun `isReachable succeeds against the real token endpoint`() {
+        val client = DigiKeyApiClient(
+            baseUrl = System.getenv("DIGIKEY_BASE_URL") ?: "https://sandbox-api.digikey.com",
+            clientId = System.getenv("DIGIKEY_CLIENT_ID"),
+            clientSecret = System.getenv("DIGIKEY_CLIENT_SECRET")
+                ?: error("DIGIKEY_CLIENT_SECRET must be set alongside DIGIKEY_CLIENT_ID."),
+        )
+
+        assertTrue(client.isReachable())
+    }
 }

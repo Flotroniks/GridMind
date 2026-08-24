@@ -6,6 +6,8 @@ import * as adminApi from '../api/adminApi'
 import type { SystemStatus } from '../types/SystemStatus'
 import { IntegrationStatusList } from './IntegrationStatusList'
 
+const AUTO_REFRESH_INTERVAL_MS = 120_000
+
 function messageOf(error: unknown, fallback: string): string {
   return error instanceof ApiError || error instanceof Error ? error.message : fallback
 }
@@ -15,18 +17,30 @@ export function SystemStatusPanel() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const load = useCallback(() => {
-    setLoading(true)
-    setError(null)
+  // `silent`: a background auto-refresh shouldn't flash the loading spinner and briefly
+  // hide the last known status — only the initial load and the manual "Actualiser" click
+  // do that.
+  const load = useCallback((silent = false) => {
+    if (!silent) setLoading(true)
     adminApi
       .fetchStatus()
-      .then(setStatus)
+      .then((data) => {
+        setStatus(data)
+        setError(null)
+      })
       .catch((loadError: unknown) => setError(messageOf(loadError, 'Impossible de charger le statut.')))
-      .finally(() => setLoading(false))
+      .finally(() => {
+        if (!silent) setLoading(false)
+      })
   }, [])
 
   useEffect(() => {
     load()
+    // Catalog-provider health checks reuse cached OAuth tokens (DigiKey/eBay) or a
+    // 12h-cached catalog (Adafruit), so polling this often costs essentially nothing —
+    // see SystemStatusService/CatalogProviderHealthCheck.
+    const interval = setInterval(() => load(true), AUTO_REFRESH_INTERVAL_MS)
+    return () => clearInterval(interval)
   }, [load])
 
   return (
@@ -36,7 +50,7 @@ export function SystemStatusPanel() {
           Point de vue en direct des intégrations externes — mots de passe/clés jamais affichés, juste
           leur présence et leur joignabilité.
         </Typography>
-        <Button size="small" startIcon={<RefreshIcon />} onClick={load} disabled={loading}>
+        <Button size="small" startIcon={<RefreshIcon />} onClick={() => load()} disabled={loading}>
           Actualiser
         </Button>
       </Stack>

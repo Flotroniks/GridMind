@@ -43,6 +43,19 @@ class DigiKeyApiClient(
     @Volatile
     private var cachedToken: CachedToken? = null
 
+    /** Verifies credentials/connectivity via the OAuth2 token endpoint alone — DigiKey
+     * documents this as separate from the Product Information API's per-day call quota,
+     * so this is safe to call far more often than a real search (also benefits from the
+     * same token cache [accessToken] already uses, so repeated calls within a token's
+     * lifetime don't even hit the network). Never throws. */
+    fun isReachable(): Boolean =
+        try {
+            accessToken()
+            true
+        } catch (ex: Exception) {
+            false
+        }
+
     fun searchKeyword(query: String): DigiKeyKeywordSearchResponse =
         restClient.post()
             .uri("/products/v4/search/keyword")
