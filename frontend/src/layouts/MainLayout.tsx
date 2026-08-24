@@ -44,14 +44,6 @@ export function MainLayout() {
             </Button>
             <Button
               component={NavLink}
-              to="/image-analysis"
-              color="inherit"
-              sx={{ '&.active': { bgcolor: 'action.selected' } }}
-            >
-              Analyse IA
-            </Button>
-            <Button
-              component={NavLink}
               to="/admin"
               color="inherit"
               sx={{ '&.active': { bgcolor: 'action.selected' } }}
