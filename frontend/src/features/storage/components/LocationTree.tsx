@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import EditIcon from '@mui/icons-material/Edit'
+import ChevronRightIcon from '@mui/icons-material/ChevronRight'
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
+import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined'
+import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined'
 import {
   Box,
   Breadcrumbs,
@@ -9,7 +12,9 @@ import {
   Link as MuiLink,
   List,
   ListItemButton,
+  ListItemIcon,
   ListItemText,
+  Stack,
   TextField,
   Typography,
 } from '@mui/material'
@@ -72,8 +77,18 @@ export function LocationTree({
 
   return (
     <Box>
-      <Breadcrumbs sx={{ mb: 1.5 }}>
-        <MuiLink component="button" type="button" underline="hover" onClick={() => onNavigateBreadcrumb(-1)}>
+      <Breadcrumbs
+        separator={<ChevronRightIcon sx={{ fontSize: 16, color: 'text.disabled' }} />}
+        sx={{ mb: 2 }}
+      >
+        <MuiLink
+          component="button"
+          type="button"
+          underline="hover"
+          onClick={() => onNavigateBreadcrumb(-1)}
+          sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}
+        >
+          <HomeOutlinedIcon sx={{ fontSize: 17 }} />
           Racine
         </MuiLink>
         {breadcrumb.map((crumb, index) => (
@@ -90,16 +105,46 @@ export function LocationTree({
       </Breadcrumbs>
 
       {isLoading ? (
-        <CircularProgress size={16} />
+        <Stack sx={{ py: 4, alignItems: 'center' }}>
+          <CircularProgress size={20} />
+        </Stack>
       ) : children.length === 0 ? (
-        <Typography variant="body2" color="textSecondary">
-          Aucun emplacement enfant.
-        </Typography>
+        <Stack
+          spacing={1}
+          sx={{
+            alignItems: 'center',
+            py: 4,
+            px: 2,
+            textAlign: 'center',
+            border: '1px dashed',
+            borderColor: 'divider',
+            borderRadius: 2,
+          }}
+        >
+          <FolderOutlinedIcon sx={{ fontSize: 32, color: 'text.disabled' }} />
+          <Typography variant="body2" color="textSecondary">
+            Aucun emplacement enfant.
+          </Typography>
+        </Stack>
       ) : (
-        <List disablePadding sx={{ bgcolor: 'background.default', borderRadius: 2 }}>
-          {children.map((child) =>
+        <List
+          disablePadding
+          sx={{ bgcolor: 'background.default', borderRadius: 2, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}
+        >
+          {children.map((child, index) =>
             editingId === child.id ? (
-              <Box key={child.id} sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2, py: 1 }}>
+              <Box
+                key={child.id}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  px: 2,
+                  py: 1,
+                  borderTop: index > 0 ? '1px solid' : 'none',
+                  borderColor: 'divider',
+                }}
+              >
                 <TextField
                   size="small"
                   value={editingName}
@@ -111,23 +156,33 @@ export function LocationTree({
                 />
               </Box>
             ) : (
-              <ListItemButton key={child.id} onClick={() => onSelect(child.id, child.name)}>
+              <ListItemButton
+                key={child.id}
+                onClick={() => onSelect(child.id, child.name)}
+                sx={{
+                  py: 1.25,
+                  borderTop: index > 0 ? '1px solid' : 'none',
+                  borderColor: 'divider',
+                }}
+              >
+                <ListItemIcon sx={{ minWidth: 36 }}>
+                  <FolderOutlinedIcon
+                    sx={{ fontSize: 20, color: child.hasChildren ? 'primary.main' : 'text.disabled' }}
+                  />
+                </ListItemIcon>
                 <ListItemText primary={child.name} />
                 <IconButton
                   size="small"
                   aria-label="Renommer"
+                  sx={{ color: 'text.disabled', mr: child.hasChildren ? 0.5 : 0 }}
                   onClick={(event) => {
                     event.stopPropagation()
                     startEditing(child.id, child.name)
                   }}
                 >
-                  <EditIcon fontSize="small" />
+                  <EditOutlinedIcon fontSize="small" />
                 </IconButton>
-                {child.hasChildren && (
-                  <Typography color="textDisabled" sx={{ ml: 1 }}>
-                    &rarr;
-                  </Typography>
-                )}
+                {child.hasChildren && <ChevronRightIcon sx={{ color: 'text.disabled' }} />}
               </ListItemButton>
             ),
           )}

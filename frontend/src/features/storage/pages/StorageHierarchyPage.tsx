@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import EditIcon from '@mui/icons-material/Edit'
+import AccountTreeOutlinedIcon from '@mui/icons-material/AccountTreeOutlined'
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
+import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined'
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz'
 import { Box, Button, Card, CardContent, IconButton, Stack, TextField, Typography } from '@mui/material'
 import { useToast } from '@/components/common/useToast'
 import { ApiError } from '@/lib/apiClient'
@@ -62,7 +65,7 @@ export function StorageHierarchyPage() {
     <Box sx={{ mx: 'auto', width: { xs: '100%', sm: '75vw' }, maxWidth: 1600 }}>
       <Card variant="outlined" sx={{ backdropFilter: 'blur(8px)', borderColor: 'divider' }}>
         <CardContent sx={{ py: 3, px: { xs: 3, sm: 5, md: 8 } }}>
-          <Box sx={{ mb: 2 }}>
+          <Box sx={{ mb: 3 }}>
             <Typography variant="overline" color="primary" sx={{ fontWeight: 600, letterSpacing: 2 }}>
               GridMind
             </Typography>
@@ -71,8 +74,15 @@ export function StorageHierarchyPage() {
             </Typography>
           </Box>
 
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: { xs: 4, md: 5 } }}>
             <Box>
+              <Stack direction="row" spacing={1} sx={{ mb: 1.5, alignItems: 'center' }}>
+                <AccountTreeOutlinedIcon fontSize="small" color="action" />
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                  Emplacements
+                </Typography>
+              </Stack>
+
               <LocationTree
                 parentId={currentId}
                 breadcrumb={breadcrumb}
@@ -84,38 +94,38 @@ export function StorageHierarchyPage() {
               </Box>
             </Box>
 
-            <Box>
-              {currentId != null &&
-                (renamingCurrent ? (
+            <Box sx={{ borderLeft: { md: '1px solid' }, borderColor: 'divider', pl: { md: 5 } }}>
+              <Stack
+                direction="row"
+                sx={{ mb: 1.5, alignItems: 'center', justifyContent: 'space-between', minHeight: 32 }}
+              >
+                {currentId != null && renamingCurrent ? (
                   <TextField
                     size="small"
                     value={currentNameDraft}
                     onChange={(event) => setCurrentNameDraft(event.target.value)}
                     autoFocus
                     fullWidth
-                    sx={{ mb: 1.5 }}
                     onKeyDown={(event) => event.key === 'Enter' && commitRenameCurrent()}
                     onBlur={commitRenameCurrent}
                   />
                 ) : (
-                  <Stack direction="row" spacing={0.5} sx={{ mb: 1.5, alignItems: 'center' }}>
+                  <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                    <Inventory2OutlinedIcon fontSize="small" color="action" />
                     <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                      {breadcrumb[breadcrumb.length - 1].name}
+                      {currentId != null ? breadcrumb[breadcrumb.length - 1].name : 'Contenu'}
                     </Typography>
-                    <IconButton size="small" aria-label="Renommer" onClick={startRenamingCurrent}>
-                      <EditIcon fontSize="small" />
-                    </IconButton>
+                    {currentId != null && (
+                      <IconButton size="small" aria-label="Renommer" sx={{ color: 'text.disabled' }} onClick={startRenamingCurrent}>
+                        <EditOutlinedIcon fontSize="small" />
+                      </IconButton>
+                    )}
                   </Stack>
-                ))}
+                )}
 
-              <Stack
-                direction="row"
-                sx={{ mb: 1, alignItems: 'center', justifyContent: 'space-between' }}
-              >
-                <Typography sx={{ fontWeight: 600 }}>Contenu</Typography>
-                {currentId != null && (
-                  <Button size="small" onClick={() => setMovingStock(true)}>
-                    Déplacer du stock
+                {currentId != null && !renamingCurrent && (
+                  <Button size="small" startIcon={<SwapHorizIcon fontSize="small" />} onClick={() => setMovingStock(true)}>
+                    Déplacer
                   </Button>
                 )}
               </Stack>

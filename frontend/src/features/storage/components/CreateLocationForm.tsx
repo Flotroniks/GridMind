@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import AddIcon from '@mui/icons-material/Add'
 import { Button, Stack, TextField } from '@mui/material'
 import { useToast } from '@/components/common/useToast'
 import { ApiError } from '@/lib/apiClient'
@@ -46,6 +47,7 @@ export function CreateLocationForm({ parentId }: CreateLocationFormProps) {
       <Button
         type="submit"
         variant="contained"
+        startIcon={<AddIcon />}
         disabled={mutation.isPending}
         sx={{ whiteSpace: 'nowrap', flexShrink: 0 }}
       >
