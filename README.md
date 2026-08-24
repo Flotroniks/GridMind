@@ -7,7 +7,8 @@ GridMind is a smart inventory and workshop management application for makers —
 - **Backend**: Kotlin, Spring Boot, PostgreSQL, Flyway migrations
 - **Frontend**: React, TypeScript, Vite, Material UI (MUI), TanStack Query, react-i18next
 - **Local AI**: [Ollama](https://ollama.com) (CPU by default, no GPU required — optional GPU acceleration available) for the experimental image-analysis prototype — see [Local AI / Image analysis](#local-ai--image-analysis)
-- **Dev environment**: Docker Compose (Postgres, backend, frontend, Ollama, all with live reload)
+- **Locate**: [Eclipse Mosquitto](https://mosquitto.org) (MQTT broker) for the pick-to-light "locate" feature — see [Locate / MQTT](#locate--mqtt)
+- **Dev environment**: Docker Compose (Postgres, backend, frontend, Ollama, Mosquitto, all with live reload)
 
 ## Prerequisites
 
@@ -71,6 +72,7 @@ docker compose exec ollama ollama pull qwen2.5vl:7b
 - **Product search**: look up a part by name or MPN across external catalogs (DigiKey, Mouser) instead of typing everything by hand — see [Product catalog providers](#product-catalog-providers)
 - **Local image storage**: an image picked during product search is downloaded once and kept on disk, independent of the provider or an internet connection
 - **Image analysis (experimental)**: photograph a part and get a best-effort identification from a local vision model, either as a standalone evaluation or as an alternative to manual entry when adding an item (pre-fills the form, photo becomes the item's image) — see [Local AI / Image analysis](#local-ai--image-analysis)
+- **Locate (experimental)**: the inventory search bar publishes matching items' storage locations over MQTT as you type, letter by letter — a "pick to light" trigger for whatever's listening on the broker (out of scope here — see [Locate / MQTT](#locate--mqtt))
 
 ## Backend API
 
@@ -82,6 +84,7 @@ docker compose exec ollama ollama pull qwen2.5vl:7b
 - `GET /api/catalog/search?query=` — search configured product catalog providers, grouped and normalized (see below)
 - `GET /api/media/{id}` — serves a locally stored image by id
 - `POST /api/image-analysis/analyze` — multipart image upload, analyzed locally via Ollama (see [Local AI / Image analysis](#local-ai--image-analysis))
+- `POST /api/locate?query=` — publishes an MQTT locate highlight for whatever currently matches `query` (see [Locate / MQTT](#locate--mqtt))
 
 ## Project structure
 
@@ -92,6 +95,7 @@ backend/src/main/kotlin/org/gridmind/backend/
 ├── storage/         # storage locations and stock allocation
 ├── catalog/         # external product search: domain, application, api, provider adapters
 ├── imageanalysis/    # local image analysis prototype: domain, application, api, Ollama adapter
+├── locate/           # pick-to-light trigger: domain, application, api, MQTT adapter
 └── shared/           # cross-cutting config and error handling
 
 backend/src/main/resources/db/migration/   # Flyway migrations
@@ -103,7 +107,8 @@ frontend/src/
 │   ├── categories/
 │   ├── storage/
 │   ├── catalog/         # product search UI (search step + confirmation step)
-│   └── imageanalysis/   # image-analysis prototype UI
+│   ├── imageanalysis/   # image-analysis prototype UI
+│   └── locate/          # locate API client (no UI of its own — see Locate / MQTT)
 ├── components/common/   # shared UI (toasts, theme toggle, language switcher, error boundary)
 ├── layouts/
 └── theme/               # MUI theme + light/dark color mode
@@ -347,6 +352,66 @@ Wiring the analyzed photo into item creation reuses the existing image pipeline 
 - **A 3B model will sometimes misread dense or small text**, especially on low-resolution or poorly-lit photos. The prompt explicitly asks the model to prefer leaving a field empty over guessing, but this is a mitigation, not a guarantee — treat every result as a starting point to verify, never as ground truth.
 - **No streaming, no partial results** — the frontend waits for the full response; there's no progressive "thinking" indicator beyond a generic loading state.
 - **Single in-flight request model** — there's no queueing or concurrency control if multiple analyses are triggered at once; each is an independent HTTP call to Ollama, which will simply queue them internally.
+
+## Locate / MQTT
+
+**Experimental.** A "pick to light" trigger: as you type into the inventory search bar, GridMind publishes — over MQTT, in real time, letter by letter — which storage locations currently match, and in what color to highlight them. This stops at the broker: turning that message into an actually lit LED (wiring, firmware, a WLED/ESP32 subscriber, whatever) is out of scope here, left for whatever's listening on the topic.
+
+### Role of the search bar
+
+There's no separate "locate" search field. The existing inventory search bar (`InventoryPage.tsx`) is the trigger — the same 250ms-debounced text that already filters the visible item list also fires `POST /api/locate?query=...` in parallel, fire-and-forget. Clearing the search box (or a query matching nothing) publishes an empty highlight list, which is how everything gets turned off — the message is always the *complete* desired state, never a delta, so a subscriber never needs to track what it turned on to know what to turn back off.
+
+### Message format
+
+One fixed topic, `gridmind/locate` (configurable — see below), one JSON message per publish:
+
+```json
+{"locations":[{"id":3,"name":"Drawer B","color":"#39FF14"}]}
+```
+
+Every currently-matching location is highlighted in the same one fixed color (`gridmind.locate.highlight-color`, default `#39FF14`) — there's no per-item or per-location color picker yet (see [Limitations](#limitations-1)).
+
+### Docker setup
+
+No manual step needed, unlike Ollama's model pull — `docker compose up` starts a local Mosquitto broker (`eclipse-mosquitto:2`) with an anonymous, unencrypted dev config (`mosquitto/mosquitto.conf`), published to the host at `localhost:1883` so it can be inspected directly without a GUI client:
+
+```bash
+mosquitto_sub -h localhost -t gridmind/locate -v
+```
+Then type into the inventory search bar and watch messages arrive as you type.
+
+### Configuration
+
+```env
+MQTT_BROKER_URL=tcp://mosquitto:1883
+MQTT_CLIENT_ID=gridmind-backend
+MQTT_LOCATE_TOPIC=gridmind/locate
+LOCATE_HIGHLIGHT_COLOR=#39FF14
+```
+
+All four are optional — the defaults above (matching `application.yaml`) are correct for the Docker Compose setup and need no `.env` entry unless overriding them (e.g. pointing at a broker you already run, like a Home Assistant Mosquitto instance, instead of the bundled one).
+
+### Architecture
+
+```text
+Locate use case (LocateService)
+        ↓
+LocatePublisherPort
+        ↑
+MqttLocatePublisher  →  Eclipse Paho MQTT client  →  Mosquitto (tcp://mosquitto:1883)
+```
+
+Same pragmatic-hexagonal pattern as `ImageAnalysisPort`/`ProductCatalogProvider`: `LocateService` (in `locate/application/`) owns the port, `MqttLocatePublisher` (in `locate/infrastructure/mqtt/`) is the only code that knows MQTT or Eclipse Paho exist. `LocateService` itself introduces no new search concept — it calls the exact same `InventoryService.search(term, categoryId, manufacturer)` the inventory list endpoint already uses, then resolves each matching item's storage locations via `StockAllocationService.stockByItem` (from the `storage` module's own application layer, not its repositories directly) and `StorageLocationService.findById`, deduplicating by location id and dropping any location whose allocated quantity has been emptied to zero.
+
+`MqttLocatePublisher` connects to the broker lazily on the first publish (not at application startup, so an unreachable broker never fails backend boot) and keeps that connection open across calls rather than reconnecting per publish, since this fires on every debounced keystroke. Every publish is wrapped so a broken or unreachable broker degrades to "the lights don't update" — logged, not thrown — since this is a side effect of search and must never make search itself fail.
+
+### Limitations
+
+- **Stops at the broker, by design.** No firmware, no addressable-LED code, no subscriber of any kind ships here — see the note at the top of this section.
+- **One fixed highlight color for everything currently matching** — no per-item or per-location color assignment yet. `LocateHighlight.color` already carries a hex value per message, so adding that later is a matter of *where the color comes from*, not a new message shape.
+- **The dev broker config is intentionally insecure** (`allow_anonymous true`, no TLS) — acceptable only because it's never exposed beyond the developer's own machine/network (`mosquitto/mosquitto.conf` says so directly). Revisit before ever exposing it further.
+- **No retained messages, no last-known-state on reconnect** — a subscriber that connects after a publish has already happened sees nothing until the next search keystroke, not "whatever was last highlighted."
+- **Not covered by an automated live test against a real broker** (unlike, say, `MouserApiClientLiveTest` for an external API) — verified manually with `mosquitto_sub` during development instead; see [Docker setup](#docker-setup-1) above to reproduce that.
 
 ## Notes
 

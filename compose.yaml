@@ -35,6 +35,29 @@ services:
         condition: service_healthy
       ollama:
         condition: service_healthy
+      mosquitto:
+        condition: service_healthy
+    init: true
+
+  mosquitto:
+    image: 'eclipse-mosquitto:2'
+    volumes:
+      - './mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro'
+    # Published to the host (unlike ollama) so the broker can be inspected directly from
+    # outside Docker during development — e.g. `mosquitto_sub -h localhost -t
+    # gridmind/locate` to watch locate highlights as you type, with no GUI client needed.
+    ports:
+      - '1883:1883'
+    healthcheck:
+      # A plain publish (not a subscribe-and-wait): success just means the broker
+      # accepted the TCP connection and the MQTT CONNECT handshake, which is all this
+      # needs to prove — a subscribe-based check tried first turned out to depend on
+      # $SYS topic timing that wasn't reliably immediate.
+      test: ['CMD-SHELL', 'mosquitto_pub -h localhost -t healthcheck -m ping -i healthcheck || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     init: true
 
   ollama:

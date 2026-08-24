@@ -6,6 +6,7 @@ import type { Category } from '@/features/categories/types/Category'
 import { ProductSearchModal } from '@/features/catalog/components/ProductSearchModal'
 import type { CatalogResult } from '@/features/catalog/types/CatalogResult'
 import type { CatalogImageSource } from '@/features/inventory/components/PrefilledItemConfirmStep'
+import * as locateApi from '@/features/locate/api/locateApi'
 import { ApiError } from '@/lib/apiClient'
 import * as inventoryApi from '../api/inventoryApi'
 import { DeleteItemDialog } from '../components/DeleteItemDialog'
@@ -82,6 +83,15 @@ export function InventoryPage() {
     const timeout = setTimeout(() => void loadItems(filters), 250)
     return () => clearTimeout(timeout)
   }, [filters, loadItems])
+
+  // Highlights, over MQTT, the storage locations of whatever the search bar currently
+  // matches — a side effect of searching, not a second search UI. Failures (e.g. the
+  // MQTT broker being down) are swallowed here deliberately: they must never surface as
+  // an inventory-search error, since the search itself already succeeded.
+  useEffect(() => {
+    const timeout = setTimeout(() => void locateApi.locate(filters.search).catch(() => {}), 250)
+    return () => clearTimeout(timeout)
+  }, [filters.search])
 
   const handleCreateCategory = async (name: string): Promise<Category> => {
     const category = await categoryApi.createCategory(name)

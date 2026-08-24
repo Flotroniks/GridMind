@@ -68,6 +68,17 @@ gridmind:
       # CPU inference on a multimodal model is slow by nature — generous on purpose, see
       # the README's "Local AI / Image analysis" section.
       timeout: ${OLLAMA_TIMEOUT:150s}
+  locate:
+    # Every currently-matching storage location is highlighted in this one fixed color —
+    # there's no per-item/per-location color picker yet, see the README's "Locate / MQTT"
+    # section.
+    highlight-color: "${LOCATE_HIGHLIGHT_COLOR:#39FF14}"
+    mqtt:
+      # "mosquitto" resolves via the Docker Compose network (see compose.yaml) — not
+      # reachable like this outside of `docker compose up`.
+      broker-url: ${MQTT_BROKER_URL:tcp://mosquitto:1883}
+      client-id: ${MQTT_CLIENT_ID:gridmind-backend}
+      topic: ${MQTT_LOCATE_TOPIC:gridmind/locate}
 
 logging:
   level:
