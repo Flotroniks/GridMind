@@ -35,6 +35,23 @@ class StorageLocationService(
     }
 
     /**
+     * Free-form rename — unlike [org.gridmind.backend.category.application.CategoryService.rename],
+     * there's no uniqueness constraint on a location's name (two different drawers can
+     * legitimately be called the same thing), and nothing else keys off it: the id is what
+     * every other reference (stock, MQTT locate messages) actually uses, so renaming never
+     * has any effect beyond display.
+     */
+    @Transactional
+    fun rename(id: Long, name: String): StorageLocation {
+        val trimmed = name.trim()
+        require(trimmed.isNotBlank()) { "Storage location name must not be blank." }
+
+        val entity = storageLocationRepository.findById(id).orElseThrow { StorageLocationNotFoundException(id) }
+        entity.name = trimmed
+        return storageLocationRepository.save(entity).toDomain()
+    }
+
+    /**
      * Deletes a location. Fails loudly instead of cascading: a location that still has
      * child locations or stock in it must be emptied out first — the FK constraints
      * enforce this at the database level, and we just translate the violation into a

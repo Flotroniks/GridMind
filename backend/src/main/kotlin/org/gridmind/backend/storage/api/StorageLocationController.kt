@@ -10,6 +10,7 @@ import org.gridmind.backend.storage.domain.StorageLocation
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -37,6 +38,12 @@ class StorageLocationController(
     @ResponseStatus(HttpStatus.CREATED)
     fun createLocation(@Valid @RequestBody request: CreateStorageLocationRequest): StorageLocationResponse =
         toResponse(storageLocationService.create(request.name, request.parentId))
+
+    @PatchMapping("/{id}")
+    fun renameLocation(
+        @PathVariable id: Long,
+        @Valid @RequestBody request: CreateStorageLocationRequest,
+    ): StorageLocationResponse = toResponse(storageLocationService.rename(id, request.name))
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)

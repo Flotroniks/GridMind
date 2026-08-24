@@ -15,6 +15,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
@@ -74,6 +75,34 @@ class StorageLocationControllerTest {
             post("/api/storage/locations")
                 .contentType("application/json")
                 .content(objectMapper.writeValueAsString(mapOf("name" to "Drawer 1", "parentId" to 99L))),
+        )
+            .andExpect(status().isNotFound)
+    }
+
+    @Test
+    fun `renameLocation returns 200 with the renamed location`() {
+        `when`(storageLocationService.rename(2L, "Capacitors"))
+            .thenReturn(StorageLocation(id = 2L, name = "Capacitors", parentId = 1L))
+        `when`(storageLocationService.findChildren(2L)).thenReturn(emptyList())
+
+        mockMvc.perform(
+            patch("/api/storage/locations/2")
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(mapOf("name" to "Capacitors"))),
+        )
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.name").value("Capacitors"))
+            .andExpect(jsonPath("$.id").value(2))
+    }
+
+    @Test
+    fun `renameLocation returns 404 for an unknown location`() {
+        `when`(storageLocationService.rename(99L, "Capacitors")).thenThrow(StorageLocationNotFoundException(99L))
+
+        mockMvc.perform(
+            patch("/api/storage/locations/99")
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(mapOf("name" to "Capacitors"))),
         )
             .andExpect(status().isNotFound)
     }

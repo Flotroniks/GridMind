@@ -24,6 +24,13 @@ export function createLocation(name: string, parentId?: number | null): Promise<
   })
 }
 
+export function renameLocation(id: number, name: string): Promise<StorageLocation> {
+  return fetchJson<StorageLocation>(`${LOCATIONS_PATH}/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ name }),
+  })
+}
+
 export function deleteLocation(id: number): Promise<void> {
   return fetchJson<void>(`${LOCATIONS_PATH}/${id}`, { method: 'DELETE' })
 }

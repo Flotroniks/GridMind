@@ -52,6 +52,41 @@ class StorageLocationServiceTest {
     }
 
     @Test
+    fun `rename updates the name and leaves the id and parent untouched`() {
+        val entity = StorageLocationEntity(id = 2L, name = "Drawer 1")
+        `when`(storageLocationRepository.findById(2L)).thenReturn(Optional.of(entity))
+        `when`(storageLocationRepository.save(entity)).thenReturn(entity)
+
+        val renamed = storageLocationService.rename(2L, "Capacitors")
+
+        assertEquals(2L, renamed.id)
+        assertEquals("Capacitors", renamed.name)
+    }
+
+    @Test
+    fun `rename trims the new name`() {
+        val entity = StorageLocationEntity(id = 2L, name = "Drawer 1")
+        `when`(storageLocationRepository.findById(2L)).thenReturn(Optional.of(entity))
+        `when`(storageLocationRepository.save(entity)).thenReturn(entity)
+
+        val renamed = storageLocationService.rename(2L, "  Capacitors  ")
+
+        assertEquals("Capacitors", renamed.name)
+    }
+
+    @Test
+    fun `rename rejects a blank name`() {
+        assertThrows<IllegalArgumentException> { storageLocationService.rename(2L, "   ") }
+    }
+
+    @Test
+    fun `rename throws StorageLocationNotFoundException for an unknown id`() {
+        `when`(storageLocationRepository.findById(99L)).thenReturn(Optional.empty())
+
+        assertThrows<StorageLocationNotFoundException> { storageLocationService.rename(99L, "Capacitors") }
+    }
+
+    @Test
     fun `delete removes an existing location with no children or stock`() {
         `when`(storageLocationRepository.existsById(1L)).thenReturn(true)
 
