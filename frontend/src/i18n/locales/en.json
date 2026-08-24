@@ -89,7 +89,18 @@
     "move": "Move",
     "moveSuccess": "Stock moved.",
     "moveError": "Could not move stock.",
-    "hereCount": "{{count}} here"
+    "moveEmptySource": "Nothing is stored directly here — pick a location that has stock, or manage storage from the item's own page.",
+    "hereCount": "{{count}} here",
+    "manageStock": "Manage storage",
+    "manageStockFor": "Storage for {{name}}",
+    "notStoredAnywhere": "This item isn't stored anywhere yet.",
+    "addLocation": "Add to a location",
+    "location": "Location",
+    "allocate": "Save",
+    "allocateSuccess": "Location updated.",
+    "allocateError": "Could not complete the operation.",
+    "from": "From",
+    "moveNeedsSource": "Add a location above first before you can move stock."
   },
   "errors": {
     "network": "Couldn't reach the server. Check your connection.",

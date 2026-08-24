@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router'
 import {
   Alert,
   Box,
+  Button,
   Card,
   CardContent,
   Chip,
@@ -11,9 +12,11 @@ import {
   Typography,
 } from '@mui/material'
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined'
+import { useTranslation } from 'react-i18next'
 import { ApiError, resolveMediaUrl } from '@/lib/apiClient'
 import * as inventoryApi from '../api/inventoryApi'
 import { ItemStockLocations } from '../components/ItemStockLocations'
+import { ItemStockManageDialog } from '../components/ItemStockManageDialog'
 import { TagBadgeList } from '../components/TagBadgeList'
 import type { Item } from '../types/Item'
 
@@ -22,10 +25,12 @@ function messageOf(error: unknown, fallback: string): string {
 }
 
 export function ItemDetailsPage() {
+  const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const [item, setItem] = useState<Item | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [managingStock, setManagingStock] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -191,13 +196,25 @@ export function ItemDetailsPage() {
           )}
 
           <Box>
-            <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
-              Emplacements de stockage
-            </Typography>
+            <Stack direction="row" sx={{ mb: 1, alignItems: 'center', justifyContent: 'space-between' }}>
+              <Typography variant="body2" color="textSecondary">
+                Emplacements de stockage
+              </Typography>
+              <Button size="small" onClick={() => setManagingStock(true)}>
+                {t('storage.manageStock')}
+              </Button>
+            </Stack>
             <ItemStockLocations itemId={item.id} />
           </Box>
         </CardContent>
       </Card>
+
+      <ItemStockManageDialog
+        open={managingStock}
+        itemId={item.id}
+        itemName={item.name}
+        onClose={() => setManagingStock(false)}
+      />
     </Box>
   )
 }

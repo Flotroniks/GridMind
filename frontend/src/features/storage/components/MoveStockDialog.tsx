@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
+  Alert,
   Button,
   Dialog,
   DialogActions,
@@ -29,11 +30,12 @@ export function MoveStockDialog({ open, fromLocationId, onClose }: MoveStockDial
   const [toLocationId, setToLocationId] = useState<number | ''>('')
   const [quantity, setQuantity] = useState(1)
 
-  const { data: contents = [] } = useQuery({
+  const { data: contents = [], isSuccess: contentsLoaded } = useQuery({
     queryKey: ['storage', 'contents', fromLocationId],
     queryFn: () => storageApi.getLocationContents(fromLocationId!),
     enabled: open && fromLocationId != null,
   })
+  const sourceIsEmpty = contentsLoaded && contents.length === 0
 
   const { data: locations = [] } = useQuery({
     queryKey: ['storage', 'allLocations'],
@@ -65,12 +67,15 @@ export function MoveStockDialog({ open, fromLocationId, onClose }: MoveStockDial
       <DialogTitle>{t('storage.moveStock')}</DialogTitle>
       <DialogContent>
         <Stack spacing={2.5} sx={{ pt: 1 }}>
+          {sourceIsEmpty && <Alert severity="info">{t('storage.moveEmptySource')}</Alert>}
+
           <TextField
             select
             label={t('storage.item')}
             value={itemId}
             onChange={(event) => setItemId(event.target.value ? Number(event.target.value) : '')}
             fullWidth
+            disabled={sourceIsEmpty}
             slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }}
           >
             <MenuItem value="">{t('storage.select')}</MenuItem>

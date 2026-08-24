@@ -89,7 +89,18 @@
     "move": "Déplacer",
     "moveSuccess": "Stock déplacé.",
     "moveError": "Déplacement impossible.",
-    "hereCount": "{{count}} ici"
+    "moveEmptySource": "Aucun objet stocké directement ici — sélectionnez un emplacement qui en contient, ou gérez le stockage depuis la fiche de l'objet.",
+    "hereCount": "{{count}} ici",
+    "manageStock": "Gérer le stockage",
+    "manageStockFor": "Stockage de {{name}}",
+    "notStoredAnywhere": "Cet objet n'est stocké nulle part pour l'instant.",
+    "addLocation": "Ajouter à un emplacement",
+    "location": "Emplacement",
+    "allocate": "Enregistrer",
+    "allocateSuccess": "Emplacement mis à jour.",
+    "allocateError": "Opération impossible.",
+    "from": "Depuis",
+    "moveNeedsSource": "Ajoutez d'abord un emplacement ci-dessus avant de pouvoir en déplacer."
   },
   "errors": {
     "network": "Impossible de contacter le serveur. Vérifiez votre connexion.",
