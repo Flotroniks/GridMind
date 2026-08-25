@@ -56,6 +56,33 @@ class LocateServiceTest {
     }
 
     @Test
+    fun `carries a location's configured LED address into the highlight`() {
+        val esp32 = Item(id = 1L, name = "ESP32-S3", quantity = 5)
+        `when`(inventoryService.search("esp32", null, null)).thenReturn(listOf(esp32))
+        `when`(stockAllocationService.stockByItem(1L)).thenReturn(
+            listOf(ItemStock(itemId = 1L, storageLocationId = 10L, quantity = 3)),
+        )
+        `when`(storageLocationService.findById(10L)).thenReturn(
+            StorageLocation(id = 10L, name = "Tiroir A", ledControllerId = "strip-a", ledIndex = 4),
+        )
+
+        service.locate("esp32")
+
+        assertEquals(
+            listOf(
+                LocateHighlight(
+                    storageLocationId = 10L,
+                    storageLocationName = "Tiroir A",
+                    color = "#39FF14",
+                    ledControllerId = "strip-a",
+                    ledIndex = 4,
+                ),
+            ),
+            publisher.lastPublished,
+        )
+    }
+
+    @Test
     fun `deduplicates a location shared by two matching items`() {
         val itemA = Item(id = 1L, name = "ESP32-S3", quantity = 5)
         val itemB = Item(id = 2L, name = "ESP32-C3", quantity = 5)

@@ -52,6 +52,25 @@ class StorageLocationService(
     }
 
     /**
+     * Sets or clears which physical LED this location lights up — pass both [controllerId]
+     * and [index] to wire it up, or both null to unwire it. See [StorageLocation]'s
+     * kdoc for why this lives in the database instead of firmware.
+     */
+    @Transactional
+    fun configureLed(id: Long, controllerId: String?, index: Int?): StorageLocation {
+        val trimmedControllerId = controllerId?.trim()?.takeIf { it.isNotBlank() }
+        require((trimmedControllerId == null) == (index == null)) {
+            "ledControllerId and ledIndex must be set or cleared together."
+        }
+        require(index == null || index >= 0) { "ledIndex must not be negative." }
+
+        val entity = storageLocationRepository.findById(id).orElseThrow { StorageLocationNotFoundException(id) }
+        entity.ledControllerId = trimmedControllerId
+        entity.ledIndex = index
+        return storageLocationRepository.save(entity).toDomain()
+    }
+
+    /**
      * Deletes a location. Fails loudly instead of cascading: a location that still has
      * child locations or stock in it must be emptied out first — the FK constraints
      * enforce this at the database level, and we just translate the violation into a

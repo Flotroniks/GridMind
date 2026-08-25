@@ -108,6 +108,22 @@ class StorageLocationControllerTest {
     }
 
     @Test
+    fun `configureLed returns 200 with the led-mapped location`() {
+        `when`(storageLocationService.configureLed(2L, "strip-a", 3))
+            .thenReturn(StorageLocation(id = 2L, name = "Drawer 1", ledControllerId = "strip-a", ledIndex = 3))
+        `when`(storageLocationService.findChildren(2L)).thenReturn(emptyList())
+
+        mockMvc.perform(
+            patch("/api/storage/locations/2/led")
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(mapOf("controllerId" to "strip-a", "index" to 3))),
+        )
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.ledControllerId").value("strip-a"))
+            .andExpect(jsonPath("$.ledIndex").value(3))
+    }
+
+    @Test
     fun `deleteLocation returns 204`() {
         mockMvc.perform(delete("/api/storage/locations/1"))
             .andExpect(status().isNoContent)

@@ -87,6 +87,47 @@ class StorageLocationServiceTest {
     }
 
     @Test
+    fun `configureLed sets the controller id and index`() {
+        val entity = StorageLocationEntity(id = 2L, name = "Drawer 1")
+        `when`(storageLocationRepository.findById(2L)).thenReturn(Optional.of(entity))
+        `when`(storageLocationRepository.save(entity)).thenReturn(entity)
+
+        val configured = storageLocationService.configureLed(2L, "strip-a", 3)
+
+        assertEquals("strip-a", configured.ledControllerId)
+        assertEquals(3, configured.ledIndex)
+    }
+
+    @Test
+    fun `configureLed clears the controller id and index when both are null`() {
+        val entity = StorageLocationEntity(id = 2L, name = "Drawer 1", ledControllerId = "strip-a", ledIndex = 3)
+        `when`(storageLocationRepository.findById(2L)).thenReturn(Optional.of(entity))
+        `when`(storageLocationRepository.save(entity)).thenReturn(entity)
+
+        val configured = storageLocationService.configureLed(2L, null, null)
+
+        assertEquals(null, configured.ledControllerId)
+        assertEquals(null, configured.ledIndex)
+    }
+
+    @Test
+    fun `configureLed rejects a controller id without an index`() {
+        assertThrows<IllegalArgumentException> { storageLocationService.configureLed(2L, "strip-a", null) }
+    }
+
+    @Test
+    fun `configureLed rejects a negative index`() {
+        assertThrows<IllegalArgumentException> { storageLocationService.configureLed(2L, "strip-a", -1) }
+    }
+
+    @Test
+    fun `configureLed throws StorageLocationNotFoundException for an unknown id`() {
+        `when`(storageLocationRepository.findById(99L)).thenReturn(Optional.empty())
+
+        assertThrows<StorageLocationNotFoundException> { storageLocationService.configureLed(99L, "strip-a", 0) }
+    }
+
+    @Test
     fun `delete removes an existing location with no children or stock`() {
         `when`(storageLocationRepository.existsById(1L)).thenReturn(true)
 
