@@ -1,16 +1,18 @@
 import { useState } from 'react'
 import { Box, Card, CardContent, Tab, Tabs, Typography } from '@mui/material'
+import { BackupPanel } from '../components/BackupPanel'
 import { CategoryManager } from '../components/CategoryManager'
 import { MqttLiveFeed } from '../components/MqttLiveFeed'
 import { SystemStatusPanel } from '../components/SystemStatusPanel'
 
-const TABS = ['status', 'categories', 'mqtt'] as const
+const TABS = ['status', 'categories', 'mqtt', 'backup'] as const
 type Tab = (typeof TABS)[number]
 
 const TAB_LABELS: Record<Tab, string> = {
   status: 'Statut',
   categories: 'Catégories',
   mqtt: 'MQTT en direct',
+  backup: 'Sauvegarde',
 }
 
 export function AdminPage() {
@@ -40,6 +42,7 @@ export function AdminPage() {
           {tab === 'status' && <SystemStatusPanel />}
           {tab === 'categories' && <CategoryManager />}
           {tab === 'mqtt' && <MqttLiveFeed />}
+          {tab === 'backup' && <BackupPanel />}
         </CardContent>
       </Card>
     </Box>
