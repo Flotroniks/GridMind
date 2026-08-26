@@ -24,8 +24,20 @@ class StorageLocationEntity(
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")
     var parent: StorageLocationEntity? = null,
+
+    @Column(name = "led_controller_id", length = 60)
+    var ledControllerId: String? = null,
+
+    @Column(name = "led_index")
+    var ledIndex: Int? = null,
 ) {
-    fun toDomain(): StorageLocation = StorageLocation(id = id, name = name, parentId = parent?.id)
+    fun toDomain(): StorageLocation = StorageLocation(
+        id = id,
+        name = name,
+        parentId = parent?.id,
+        ledControllerId = ledControllerId,
+        ledIndex = ledIndex,
+    )
 
     companion object {
         fun fromDomain(location: StorageLocation, parent: StorageLocationEntity?): StorageLocationEntity =
@@ -33,6 +45,8 @@ class StorageLocationEntity(
                 id = location.id,
                 name = location.name.trim(),
                 parent = parent,
+                ledControllerId = location.ledControllerId,
+                ledIndex = location.ledIndex,
             )
     }
 }

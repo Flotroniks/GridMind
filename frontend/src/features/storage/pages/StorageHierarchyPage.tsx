@@ -1,10 +1,24 @@
 import { useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import AccountTreeOutlinedIcon from '@mui/icons-material/AccountTreeOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined'
+import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined'
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz'
-import { Box, Button, Card, CardContent, IconButton, Stack, TextField, Typography } from '@mui/material'
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material'
 import { useToast } from '@/components/common/useToast'
 import { ApiError } from '@/lib/apiClient'
 import * as storageApi from '../api/storageApi'
@@ -24,9 +38,21 @@ export function StorageHierarchyPage() {
   const [movingStock, setMovingStock] = useState(false)
   const [renamingCurrent, setRenamingCurrent] = useState(false)
   const [currentNameDraft, setCurrentNameDraft] = useState('')
+  const [configuringLed, setConfiguringLed] = useState(false)
+  const [ledControllerDraft, setLedControllerDraft] = useState('')
+  const [ledIndexDraft, setLedIndexDraft] = useState('')
 
   const currentId = breadcrumb.length > 0 ? breadcrumb[breadcrumb.length - 1].id : null
   const parentIdOfCurrent = breadcrumb.length > 1 ? breadcrumb[breadcrumb.length - 2].id : null
+
+  // Fetched separately from the breadcrumb (which only carries id/name) — this is the
+  // only place the current location's LED mapping is needed, to prefill and reflect the
+  // dialog below.
+  const { data: currentLocation } = useQuery({
+    queryKey: ['storage', 'location', currentId],
+    queryFn: () => storageApi.getLocation(currentId!),
+    enabled: currentId != null,
+  })
 
   const handleSelect = (id: number, name: string) => {
     setBreadcrumb((current) => [...current, { id, name }])
@@ -46,6 +72,7 @@ export function StorageHierarchyPage() {
       // level that's cached under — null for a root-level location).
       void queryClient.invalidateQueries({ queryKey: ['storage', 'children', parentIdOfCurrent] })
       void queryClient.invalidateQueries({ queryKey: ['storage', 'allLocations'] })
+      void queryClient.invalidateQueries({ queryKey: ['storage', 'location', currentId] })
     },
     onError: (error: unknown) => showToast(messageOf(error, 'Renommage impossible.'), 'error'),
   })
@@ -60,6 +87,26 @@ export function StorageHierarchyPage() {
     if (!currentNameDraft.trim()) return
     renameMutation.mutate()
   }
+
+  const configureLedMutation = useMutation({
+    mutationFn: (params: { controllerId: string | null; index: number | null }) =>
+      storageApi.configureLocationLed(currentId!, params.controllerId, params.index),
+    onSuccess: () => {
+      showToast('LED mise à jour.', 'success')
+      setConfiguringLed(false)
+      void queryClient.invalidateQueries({ queryKey: ['storage', 'location', currentId] })
+    },
+    onError: (error: unknown) => showToast(messageOf(error, 'Configuration LED impossible.'), 'error'),
+  })
+
+  const openLedConfig = () => {
+    if (currentId == null) return
+    setLedControllerDraft(currentLocation?.ledControllerId ?? '')
+    setLedIndexDraft(currentLocation?.ledIndex != null ? String(currentLocation.ledIndex) : '')
+    setConfiguringLed(true)
+  }
+
+  const ledMismatch = (ledControllerDraft.trim() !== '') !== (ledIndexDraft.trim() !== '')
 
   return (
     <Box sx={{ mx: 'auto', width: { xs: '100%', sm: '75vw' }, maxWidth: 1600 }}>
@@ -120,6 +167,16 @@ export function StorageHierarchyPage() {
                         <EditOutlinedIcon fontSize="small" />
                       </IconButton>
                     )}
+                    {currentId != null && (
+                      <IconButton
+                        size="small"
+                        aria-label="Configurer la LED"
+                        sx={{ color: currentLocation?.ledControllerId ? 'warning.main' : 'text.disabled' }}
+                        onClick={openLedConfig}
+                      >
+                        <LightbulbOutlinedIcon fontSize="small" />
+                      </IconButton>
+                    )}
                   </Stack>
                 )}
 
@@ -140,6 +197,57 @@ export function StorageHierarchyPage() {
         fromLocationId={currentId}
         onClose={() => setMovingStock(false)}
       />
+
+      <Dialog open={configuringLed} onClose={() => setConfiguringLed(false)}>
+        <DialogTitle>LED de l'emplacement</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ pt: 1, minWidth: 320 }}>
+            <Typography variant="body2" color="textSecondary">
+              Associe cet emplacement à une LED physique pour la fonction « localiser ».
+              Laisser les deux champs vides pour ne rien allumer ici.
+            </Typography>
+            <TextField
+              label="Contrôleur"
+              size="small"
+              value={ledControllerDraft}
+              onChange={(event) => setLedControllerDraft(event.target.value)}
+              placeholder="ex. strip-a"
+              fullWidth
+              autoComplete="off"
+            />
+            <TextField
+              label="Index LED"
+              size="small"
+              type="number"
+              value={ledIndexDraft}
+              onChange={(event) => setLedIndexDraft(event.target.value)}
+              fullWidth
+              autoComplete="off"
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            color="inherit"
+            onClick={() => configureLedMutation.mutate({ controllerId: null, index: null })}
+          >
+            Effacer
+          </Button>
+          <Button onClick={() => setConfiguringLed(false)}>Annuler</Button>
+          <Button
+            variant="contained"
+            disabled={ledMismatch}
+            onClick={() =>
+              configureLedMutation.mutate({
+                controllerId: ledControllerDraft.trim() || null,
+                index: ledIndexDraft.trim() === '' ? null : Number(ledIndexDraft),
+              })
+            }
+          >
+            Enregistrer
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }

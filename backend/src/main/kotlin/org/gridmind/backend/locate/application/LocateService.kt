@@ -41,7 +41,13 @@ class LocateService(
 
         val highlights = locationIds.map { id ->
             val location = storageLocationService.findById(id)
-            LocateHighlight(storageLocationId = id, storageLocationName = location.name, color = highlightColor)
+            LocateHighlight(
+                storageLocationId = id,
+                storageLocationName = location.name,
+                color = highlightColor,
+                ledControllerId = location.ledControllerId,
+                ledIndex = location.ledIndex,
+            )
         }
 
         locatePublisherPort.publish(highlights)

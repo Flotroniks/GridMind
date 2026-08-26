@@ -84,10 +84,28 @@ internal data class LocateMqttPayload(val locations: List<LocateMqttLocation>) {
         fun from(highlights: List<LocateHighlight>): LocateMqttPayload =
             LocateMqttPayload(
                 highlights.map {
-                    LocateMqttLocation(id = it.storageLocationId, name = it.storageLocationName, color = it.color)
+                    LocateMqttLocation(
+                        id = it.storageLocationId,
+                        name = it.storageLocationName,
+                        color = it.color,
+                        controllerId = it.ledControllerId,
+                        ledIndex = it.ledIndex,
+                    )
                 },
             )
     }
 }
 
-internal data class LocateMqttLocation(val id: Long, val name: String, val color: String)
+/**
+ * [controllerId] and [ledIndex] are null when the location has no physical LED wired up
+ * yet. A subscribing microcontroller is expected to filter this list down to entries
+ * whose [controllerId] matches its own id and drive [ledIndex] directly — it holds no
+ * location logic of its own, just an addressable strip and this message.
+ */
+internal data class LocateMqttLocation(
+    val id: Long,
+    val name: String,
+    val color: String,
+    val controllerId: String?,
+    val ledIndex: Int?,
+)

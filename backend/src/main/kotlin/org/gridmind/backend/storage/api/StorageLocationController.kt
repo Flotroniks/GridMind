@@ -45,6 +45,13 @@ class StorageLocationController(
         @Valid @RequestBody request: CreateStorageLocationRequest,
     ): StorageLocationResponse = toResponse(storageLocationService.rename(id, request.name))
 
+    @PatchMapping("/{id}/led")
+    fun configureLed(
+        @PathVariable id: Long,
+        @RequestBody request: ConfigureLedRequest,
+    ): StorageLocationResponse =
+        toResponse(storageLocationService.configureLed(id, request.controllerId, request.index))
+
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun deleteLocation(@PathVariable id: Long) {
@@ -63,6 +70,8 @@ class StorageLocationController(
             name = location.name,
             parentId = location.parentId,
             hasChildren = location.id?.let { storageLocationService.findChildren(it).isNotEmpty() } ?: false,
+            ledControllerId = location.ledControllerId,
+            ledIndex = location.ledIndex,
         )
 
     private fun toStockResponse(stock: ItemStock, locationName: String?): ItemStockResponse {
@@ -88,4 +97,11 @@ data class StorageLocationResponse(
     val name: String,
     val parentId: Long?,
     val hasChildren: Boolean,
+    val ledControllerId: String?,
+    val ledIndex: Int?,
+)
+
+data class ConfigureLedRequest(
+    val controllerId: String?,
+    val index: Int?,
 )
