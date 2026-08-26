@@ -21,7 +21,13 @@ export function MainLayout() {
         sx={{ borderBottom: 1, borderColor: 'divider', backdropFilter: 'blur(8px)' }}
       >
         <Toolbar sx={{ gap: 2, px: { xs: 2, sm: 4 } }}>
-          <Typography variant="h6" component="span" color="primary" sx={{ flexGrow: 1, fontWeight: 700 }}>
+          <Typography
+            variant="h6"
+            component={NavLink}
+            to="/"
+            color="primary"
+            sx={{ flexGrow: 1, fontWeight: 700, textDecoration: 'none' }}
+          >
             GridMind
           </Typography>
           <Stack direction="row" spacing={1}>
